@@ -1,0 +1,10 @@
+method,setting,split,accuracy,error_rate,cm_FF,cm_FM,cm_MF,cm_MM
+Gaussian Bayes,full covariance; equal prior,train,0.88,0.12,44,6,6,44
+Parzen Bayes,Gaussian kernel h=5.0; equal prior,train,0.87,0.13,46,4,9,41
+Fisher,height and weight,train,0.88,0.12,46,4,8,42
+Gaussian Bayes,full covariance; equal prior,test1,0.9714285714285714,0.02857142857142858,15,0,1,19
+Parzen Bayes,Gaussian kernel h=5.0; equal prior,test1,0.9714285714285714,0.02857142857142858,14,1,0,20
+Fisher,height and weight,test1,0.9714285714285714,0.02857142857142858,14,1,0,20
+Gaussian Bayes,full covariance; equal prior,test2,0.8933333333333333,0.10666666666666669,49,1,31,219
+Parzen Bayes,Gaussian kernel h=5.0; equal prior,test2,0.9033333333333333,0.09666666666666668,48,2,27,223
+Fisher,height and weight,test2,0.9033333333333333,0.09666666666666668,48,2,27,223

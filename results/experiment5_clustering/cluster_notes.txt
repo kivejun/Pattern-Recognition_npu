@@ -1,0 +1,6 @@
+train_samples: 100
+combined_samples: 400
+init_sse_min: 80.319275
+init_sse_max: 80.394960
+init_accuracy_min: 0.850000
+init_accuracy_max: 0.870000

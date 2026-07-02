@@ -1,0 +1,3 @@
+split,images,labels,height,width
+train,60000,60000,28,28
+test,10000,10000,28,28

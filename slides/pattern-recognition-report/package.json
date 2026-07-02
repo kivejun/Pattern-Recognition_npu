@@ -1,0 +1,17 @@
+{
+  "name": "pattern-recognition-coursework-slides",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "slidev --port 3030",
+    "build": "slidev build",
+    "export:pdf": "slidev export --format pdf",
+    "export:pptx": "slidev export --format pptx"
+  },
+  "dependencies": {
+    "@slidev/cli": "latest",
+    "@slidev/theme-default": "latest",
+    "playwright-chromium": "latest",
+    "pptxgenjs": "^4.0.1"
+  }
+}

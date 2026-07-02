@@ -1,0 +1,5 @@
+Fisher w: [0.00232118, 0.00185177]
+Fisher threshold: 0.50018477
+LOO Gaussian Bayes error: 0.120000
+LOO Parzen Bayes error: 0.140000
+LOO Fisher error: 0.130000

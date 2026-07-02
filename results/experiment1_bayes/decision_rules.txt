@@ -1,0 +1,10 @@
+F mean: [162.84, 52.596]
+F covariance: [[43.934401, 15.52536], [15.52536, 31.128785]]
+M mean: [173.92, 65.502]
+M covariance: [[20.753601, 23.05816], [23.05816, 59.898197]]
+
+Decision rule for minimum-error Bayes with equal prior:
+choose class argmax_i log N(x; mu_i, Sigma_i) + log P(omega_i).
+
+Minimum-risk loss table used in this experiment:
+lambda(F|F)=0, lambda(M|M)=0, lambda(F|M)=1, lambda(M|F)=2.

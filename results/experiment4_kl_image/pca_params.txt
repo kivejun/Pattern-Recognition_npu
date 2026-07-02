@@ -1,0 +1,8 @@
+image_size: 32x32
+train_samples: 2530
+test_samples: 636
+num_classes: 16
+n_components: 64
+explained_variance_ratio_sum: 0.898829
+test_accuracy_pca_1nn: 0.539308
+classes: B-52, B2, ET, F-16, FA-18, H-6, IL-78M, J-10, KC-10, KC-135, KC-46, MQ-25, S-27, T-160, T-95, YY-20
