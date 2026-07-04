@@ -145,12 +145,12 @@
 \phantomsection
 \addcontentsline{toc}{section}{摘要}
 \section*{摘\quad 要}
-本报告围绕模式识别课程中的典型监督学习、特征提取与无监督聚类问题展开实验。实验一和实验二以男女身高体重数据集为对象，分别实现基于参数估计的 Bayes 分类器、基于 Parzen 窗和 $k$ 近邻的非参数分类器，以及 Fisher 线性判别方法；实验三进一步引入 K-L 变换，分析 PCA 主成分方向与类均值判别方向之间的差异；实验四将 K-L 变换应用到图像识别任务中，完成特征脸提取与识别实验；实验五使用 C 均值和 Ward 分级聚类方法分析身高体重数据的聚类结构。
+模式识别方法的性能不仅取决于分类器形式，还受到特征表示、概率假设、样本规模和评价准则的共同影响。围绕课程中的参数估计、非参数估计、线性判别、K-L 变换和聚类分析等核心内容，本文构建了由低维统计数据、标准机器学习数据集和视觉应用任务组成的实验体系。首先，以男女身高体重数据为主要对象，建立最小错误率 Bayes 分类器和最小风险 Bayes 分类器，并进一步引入 Parzen 窗、$k$ 近邻和 Fisher 线性判别方法，对不同特征组合、先验概率、协方差假设和损失函数设置下的分类性能进行比较。其次，利用 K-L 变换分析无监督主成分方向与监督判别方向的差异，并在人脸图像上实现特征脸提取与识别。随后，采用 C 均值和 Ward 分级聚类方法研究样本空间中的无监督分组结构。为提高实验的完整性，本文还在模拟高斯数据、UCI Iris、MNIST、CIFAR 等扩展数据集上测试相关方法，并补充开集目标检测和视觉分类器奖励引导的无人机数字轨迹两个拓展实验。
 
-全文按照“理论原理、实验设置、程序实现、结果分析”的思路组织。通过对分类准确率、混淆矩阵、决策边界、投影分布和聚类指标等结果的比较，可以看到：模型假设、先验概率、损失函数、特征投影方式和聚类初值都会影响最终识别效果。实验结果也说明，模式识别中的“最优”并不是固定概念，而是与数据分布、任务目标和评价指标密切相关。
+实验结果表明，在低维、近似高斯且类别分布较清晰的数据上，参数 Bayes 分类器和线性判别方法能够获得较稳定的分类效果；当数据分布复杂或图像维度较高时，特征表达质量对识别性能的影响更加显著。非参数方法能够在不强加分布假设的情况下刻画局部结构，但其效果依赖窗宽、邻居数和样本密度。K-L 变换能够有效压缩高维图像信息，但其最大方差方向并不一定等价于最优分类方向。聚类实验进一步说明，无监督分组结果反映的是特征空间结构，而不必然等同于真实语义类别。两个拓展实验表明，模式识别方法还可以扩展到开放类别拒识和智能体控制评价中，体现出从传统统计分类到现代视觉决策系统的应用联系。
 
 \vspace{1em}
-\noindent\textbf{关键词：} 模式识别；Bayes 分类器；Fisher 线性判别；K-L 变换；C 均值聚类
+\noindent\textbf{关键词：} 模式识别；Bayes 分类器；非参数估计；Fisher 线性判别；K-L 变换；开集检测；视觉分类器
 
 \clearpage
 \tableofcontents
@@ -205,8 +205,7 @@ Jupyter & 交互式实验记录 \\
 3 & UCI Iris & \texttt{datasets/03\_uci\_iris/} & 已下载并划分 \\
 4 & MNIST & \texttt{datasets/04\_mnist/} & 已下载 \\
 5 & CIFAR-10 / CIFAR-100 & \texttt{datasets/05\_cifar/} & 已下载并解压 \\
-6 & ImageNet & \texttt{datasets/06\_imagenet/} & 需手动下载 \\
-7 & 飞机分类数据集 & \texttt{experiment/plane\_dataset\_4\_1/} & 已具备 \\
+6 & 飞机分类数据集 & \texttt{experiment/plane\_dataset\_4\_1/} & 已具备 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -214,30 +213,30 @@ Jupyter & 交互式实验记录 \\
 \clearpage
 \section{实验一：Bayes 分类器实验}
 
-\subsection{姓名、学号、班级、题目}
-
-\begin{itemize}
-  \item 姓名：\studentname
-  \item 学号：\studentid
-  \item 班级：\studentclass
-  \item 题目：用身高和/或体重数据进行性别分类的 Bayes 分类器实验
-\end{itemize}
-
 \subsection{模式识别理论知识}
 
-模式识别中的分类问题可以理解为：给定一个样本特征向量 $\boldsymbol{x}$，判断它最可能属于哪个类别。本实验的类别为女生 $\omega_F$ 和男生 $\omega_M$，特征可以只取身高或体重，也可以同时取二维向量
+\subsubsection{分类问题与 Bayes 公式}
+
+模式识别中的分类问题定义为：给定样本特征向量 $\boldsymbol{x}$，判定其所属类别。本实验的类别为女生 $\omega_F$ 和男生 $\omega_M$，特征可以只取身高或体重，也可以同时取二维向量
 \[
 \boldsymbol{x} = [\text{身高},\text{体重}]^T .
 \]
-Bayes 分类器的核心思想是把“样本像不像某一类”和“这一类本身出现的可能性”结合起来。根据 Bayes 公式，类别后验概率为
+Bayes 分类器根据类条件概率密度和先验概率计算类别后验概率。根据 Bayes 公式，类别后验概率为
 \[
 P(\omega_i|\boldsymbol{x}) = \frac{p(\boldsymbol{x}|\omega_i)P(\omega_i)}{p(\boldsymbol{x})},\quad i\in\{F,M\}.
 \]
 其中 $p(\boldsymbol{x}|\omega_i)$ 是类条件概率密度，$P(\omega_i)$ 是先验概率。由于对两个类别比较时 $p(\boldsymbol{x})$ 相同，最小错误率 Bayes 分类器只需比较
 \[
+p(\boldsymbol{x}|\omega_i)P(\omega_i).
+\]
+因此，若 $p(\boldsymbol{x}|\omega_F)P(\omega_F)>p(\boldsymbol{x}|\omega_M)P(\omega_M)$，则判为女生；否则判为男生。程序实现时，为避免概率密度数值过小导致下溢，等价地比较对数判别函数
+\[
 g_i(\boldsymbol{x}) = \ln p(\boldsymbol{x}|\omega_i)+\ln P(\omega_i).
 \]
-若 $g_F(\boldsymbol{x})>g_M(\boldsymbol{x})$，则判为女生；否则判为男生。
+
+训练阶段根据已标注样本估计各类别在特征空间中的概率分布；测试阶段将待测样本代入两个类别的判别式，并选择后验概率较大的类别。对于身高体重数据，若样本靠近女生分布中心，则 $p(\boldsymbol{x}|\omega_F)$ 较大；若样本靠近男生分布中心，则 $p(\boldsymbol{x}|\omega_M)$ 较大。先验概率 $P(\omega_i)$ 表示分类前对类别比例的设定。
+
+\subsubsection{高斯分布假设与最大似然参数估计}
 
 在参数估计实验中，假设每一类样本服从正态分布。单特征时采用一维高斯分布：
 \[
@@ -254,9 +253,14 @@ p(\boldsymbol{x}|\omega_i)=\frac{1}{(2\pi)^{d/2}|\boldsymbol{\Sigma}_i|^{1/2}}
 \quad
 \hat{\boldsymbol{\Sigma}}_i=\frac{1}{N_i}\sum_{k=1}^{N_i}(\boldsymbol{x}_k-\hat{\boldsymbol{\mu}}_i)(\boldsymbol{x}_k-\hat{\boldsymbol{\mu}}_i)^T.
 \]
+因此，本实验中的参数估计实例选择最大似然估计：程序分别对女生类和男生类计算样本均值、方差或协方差矩阵，再把这些参数代入高斯 Bayes 判别函数，得到可用于分类的概率密度模型。
 如果认为身高和体重相关，则使用完整协方差矩阵；如果认为二者不相关，则只保留协方差矩阵对角线，相当于把二维密度拆成两个独立的一维密度相乘。
 
-最小错误率准则默认所有错误代价相同；最小风险 Bayes 决策进一步考虑“不同错误造成的损失不同”。本实验给出如下损失表：
+完整协方差模型能够描述“身高越高体重往往越重”的线性相关关系，因此决策边界可以随数据分布方向发生旋转；对角协方差模型忽略相关性，假设身高和体重分别独立提供判别信息，模型更简单、参数更少。在训练样本数量有限时，复杂模型不一定总是带来更好的测试性能，这也是本实验比较相关和不相关假设的原因。
+
+\subsubsection{最小风险 Bayes 分类器}
+
+最小错误率 Bayes 分类器把所有错误看作同等代价，决策目标是使错误概率最小。当不同类型错误造成的代价不同时，需要使用最小风险 Bayes 分类器。最小风险准则不直接比较后验概率大小，而是先计算采取某一决策后的条件风险，再选择条件风险最小的决策。本实验给出如下损失表：
 \begin{table}[H]
 \centering
 \caption{实验一最小风险 Bayes 决策损失表}
@@ -270,9 +274,67 @@ p(\boldsymbol{x}|\omega_i)=\frac{1}{(2\pi)^{d/2}|\boldsymbol{\Sigma}_i|^{1/2}}
 \bottomrule
 \end{tabular}
 \end{table}
-因此判为女生的条件风险为 $R_F(\boldsymbol{x})=1\cdot P(\omega_M|\boldsymbol{x})$，判为男生的条件风险为 $R_M(\boldsymbol{x})=2\cdot P(\omega_F|\boldsymbol{x})$，选择风险较小的类别。
+设共有 $M$ 个类别，$\alpha_i$ 表示采取第 $i$ 个决策，$\lambda_{ij}$ 表示真实类别为 $\omega_j$ 而采取决策 $\alpha_i$ 时的损失，则条件风险定义为
+\[
+R_i(\boldsymbol{x})=\sum_{j=1}^{M}\lambda_{ij}P(\omega_j|\boldsymbol{x}).
+\]
+其中 $P(\omega_j|\boldsymbol{x})$ 为样本 $\boldsymbol{x}$ 属于真实类别 $\omega_j$ 的后验概率，$\lambda_{ij}$ 为在该真实类别下采取决策 $\alpha_i$ 的损失。最小风险 Bayes 决策选择条件风险最小的决策：
+\[
+\alpha^\ast(\boldsymbol{x})=\arg\min_i R_i(\boldsymbol{x}).
+\]
+对于本实验的二分类问题，若决策 $\alpha_F$ 表示判为女生，决策 $\alpha_M$ 表示判为男生，则 $M=2$，条件风险可按损失表展开为
+\[
+R_F(\boldsymbol{x})
+=\lambda_{FF}P(\omega_F|\boldsymbol{x})
++\lambda_{FM}P(\omega_M|\boldsymbol{x})
+=0\cdot P(\omega_F|\boldsymbol{x})+1\cdot P(\omega_M|\boldsymbol{x})
+=P(\omega_M|\boldsymbol{x}),
+\]
+\[
+R_M(\boldsymbol{x})
+=\lambda_{MF}P(\omega_F|\boldsymbol{x})
++\lambda_{MM}P(\omega_M|\boldsymbol{x})
+=2\cdot P(\omega_F|\boldsymbol{x})+0\cdot P(\omega_M|\boldsymbol{x})
+=2P(\omega_F|\boldsymbol{x}).
+\]
+因此，当
+\[
+R_F(\boldsymbol{x})<R_M(\boldsymbol{x})
+\quad \Longleftrightarrow \quad
+P(\omega_M|\boldsymbol{x})<2P(\omega_F|\boldsymbol{x})
+\]
+时判为女生，否则判为男生。后验概率仍由 Bayes 公式计算：
+\[
+P(\omega_i|\boldsymbol{x})
+=\frac{p(\boldsymbol{x}|\omega_i)P(\omega_i)}
+{\sum_{j\in\{F,M\}}p(\boldsymbol{x}|\omega_j)P(\omega_j)}.
+\]
+表 \ref{tab:exp1_loss} 中女生被误判为男生的代价为 2，男生被误判为女生的代价为 1，因此最小风险决策会扩大女生判决区域，以降低高损失错误的发生次数。
 
-非参数估计不预先假设数据一定服从高斯分布。Parzen 窗用核函数在每个训练样本附近放置一个“小窗口”，通过窗口叠加估计概率密度；$k$ 近邻方法直接寻找距离测试样本最近的 $k$ 个训练样本，用邻居的类别投票完成分类。二者更依赖数据本身的局部分布，适合观察参数模型和非参数模型在同一数据集上的差别。
+\subsubsection{非参数估计方法}
+
+非参数估计不预先规定类条件概率密度必须服从某一种参数化分布。与高斯 Bayes 中“先假设分布形式，再估计均值和协方差”的过程不同，非参数方法主要利用训练样本在特征空间中的局部排列情况完成密度估计或分类。本实验实现 Parzen 窗和 $k$ 近邻两种方法。
+
+\noindent\textbf{Parzen 窗密度估计。}
+Parzen 窗是一种概率密度估计方法。对类别 $\omega_i$，设该类训练样本为 $\boldsymbol{x}_1,\boldsymbol{x}_2,\ldots,\boldsymbol{x}_{N_i}$，采用高斯核函数时，类条件概率密度估计为
+\[
+\hat{p}(\boldsymbol{x}|\omega_i)
+=\frac{1}{N_i}\sum_{k=1}^{N_i}
+\frac{1}{(2\pi)^{d/2}h^d}
+\exp\left[-\frac{1}{2}\left\|\frac{\boldsymbol{x}-\boldsymbol{x}_k}{h}\right\|^2\right].
+\]
+其中 $d$ 为特征维数，$h$ 为窗宽。每个训练样本都可以看作一个以自身为中心的高斯核，所有核函数叠加后得到该类别的概率密度估计。窗宽 $h$ 决定单个样本影响范围：$h$ 较小时，密度估计更依赖局部样本，决策边界可能更曲折；$h$ 较大时，密度估计更平滑，但可能削弱局部结构。本实验在二维身高体重特征上使用高斯核 Parzen 窗，得到 $\hat{p}(\boldsymbol{x}|\omega_i)$ 后代入 Bayes 判别规则，比较
+\[
+\hat{p}(\boldsymbol{x}|\omega_i)P(\omega_i).
+\]
+
+\noindent\textbf{$k$ 近邻分类。}
+$k$ 近邻方法不显式估计概率密度。对待分类样本 $\boldsymbol{x}$，先计算它与训练样本之间的距离，选取距离最近的 $k$ 个样本，再按邻居类别多数投票确定类别：
+\[
+\hat{\omega}(\boldsymbol{x})
+=\arg\max_{\omega_i}\sum_{\boldsymbol{x}_k\in N_k(\boldsymbol{x})} I(y_k=\omega_i),
+\]
+其中 $N_k(\boldsymbol{x})$ 表示 $\boldsymbol{x}$ 的 $k$ 个最近邻集合，$I(\cdot)$ 为指示函数。本实验使用欧氏距离和 $k=5$。$k$ 较小时分类结果对个别样本敏感，$k$ 较大时局部细节被平均。Parzen 窗和 $k$ 近邻均依赖样本局部分布，但 Parzen 窗先估计密度再按 Bayes 规则分类，$k$ 近邻直接根据邻域样本标签分类。
 
 \subsection{实际数据集与参数计算}
 
@@ -306,6 +368,16 @@ p(\boldsymbol{x}|\omega_i)=\frac{1}{(2\pi)^{d/2}|\boldsymbol{\Sigma}_i|^{1/2}}
 \]
 从均值看，男生训练样本的平均身高和平均体重均高于女生；从协方差看，两类样本的身高与体重均呈正相关，说明较高的样本往往也较重。男生协方差中的非对角元素更大，表示男生样本中身高和体重的线性相关更明显。
 
+本实验围绕同一组训练数据逐步改变分类器设计因素，具体设置如下：
+\begin{enumerate}
+  \item 单特征实验：分别只使用身高或体重，观察单一特征对性别分类的贡献。
+  \item 双特征实验：同时使用身高和体重，比较完整协方差和对角协方差两种高斯模型。
+  \item 先验概率实验：在二维完整协方差模型下改变 $P(F)$ 和 $P(M)$，观察决策边界偏移和错误率变化。
+  \item 最小风险实验：引入损失表，使分类器不只追求错误率最低，还考虑不同错误的代价。
+  \item 非参数实验：使用 Parzen 窗和 $k$ 近邻，与参数化高斯 Bayes 分类器进行对比。
+\end{enumerate}
+评价指标包括训练集、\texttt{test1.txt} 和 \texttt{test2.txt} 上的准确率，以及 test2 上的混淆矩阵。由于 test2 中男生样本远多于女生样本，单纯观察总体准确率可能掩盖某一类的识别情况，因此需要同时关注女生召回率和男生召回率。
+
 \subsection{程序框图与代码实现}
 
 \begin{figure}[H]
@@ -329,122 +401,19 @@ p(\boldsymbol{x}|\omega_i)=\frac{1}{(2\pi)^{d/2}|\boldsymbol{\Sigma}_i|^{1/2}}
 \end{figure}
 
 关键程序位于 \texttt{scripts/experiment1\_bayes.py}。数据读取时先把测试集中的性别标签统一为 \texttt{F} 和 \texttt{M}，避免大小写差异影响评价。
-\begin{lstlisting}
-def normalize_label(label: str) -> str:
-    # 将 Female/Female-like 标签归一化为 F，Male/Male-like 标签归一化为 M
-    value = label.strip().upper()
-    if value.startswith("F"):
-        return "F"
-    if value.startswith("M"):
-        return "M"
-    raise ValueError(f"Unknown label: {label}")
-
-
-def read_test_file(path: Path) -> Tuple[np.ndarray, np.ndarray]:
-    # 测试文件每行包含：身高 体重 性别
-    rows = []
-    labels = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            if not line.strip():
-                continue
-            height, weight, label = line.split()[:3]
-            rows.append((float(height), float(weight)))
-            labels.append(normalize_label(label))
-    return np.array(rows, dtype=float), np.array(labels)
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp1-data-read}。
 
 参数估计部分直接实现高斯分布的最大似然估计。\texttt{covariance\_mode="full"} 表示考虑身高体重相关，\texttt{covariance\_mode="diag"} 表示假设二者不相关。
-\begin{lstlisting}
-def fit_gaussian(x, y, features, covariance_mode):
-    # 对每一类分别估计均值向量和协方差矩阵
-    model = {}
-    for label in LABELS:
-        class_x = x[y == label][:, features]
-        if class_x.ndim == 1:
-            class_x = class_x[:, None]
-        mean = class_x.mean(axis=0)
-        centered = class_x - mean
-        cov = centered.T @ centered / len(class_x)  # MLE: 分母为 N
-        cov = np.atleast_2d(cov)
-        if covariance_mode == "diag":
-            cov = np.diag(np.diag(cov))  # 不相关假设：只保留方差
-        cov = cov + np.eye(cov.shape[0]) * 1e-6
-        model[label] = {"mean": mean, "cov": cov}
-    return model
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp1-gaussian-fit}。
 
 最小错误率 Bayes 分类器使用对数判别函数，避免直接计算很小的概率密度导致数值下溢。
-\begin{lstlisting}
-def predict_gaussian(model, x, features, priors):
-    # 比较 log p(x|wi) + log P(wi)，得分更大的类别即预测类别
-    x_selected = x[:, features]
-    if x_selected.ndim == 1:
-        x_selected = x_selected[:, None]
-    scores = []
-    for label, prior in zip(LABELS, priors):
-        params = model[label]
-        log_px = log_gaussian_density(x_selected, params["mean"], params["cov"])
-        scores.append(log_px + math.log(prior))
-    score_matrix = np.vstack(scores).T
-    return np.array([LABELS[idx] for idx in np.argmax(score_matrix, axis=1)])
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp1-gaussian-predict}。
 
 最小风险 Bayes 分类器先由对数后验得分恢复后验概率，再根据损失表计算条件风险。
-\begin{lstlisting}
-def predict_min_risk(model, x, features, priors,
-                     loss_predict_f_when_m=1.0,
-                     loss_predict_m_when_f=2.0):
-    # 计算两个类别的对数后验得分
-    x_selected = x[:, features]
-    log_posts = []
-    for label, prior in zip(LABELS, priors):
-        params = model[label]
-        log_posts.append(
-            log_gaussian_density(x_selected, params["mean"], params["cov"])
-            + math.log(prior)
-        )
-    log_posts = np.vstack(log_posts).T
-
-    # 对数得分归一化为后验概率
-    max_log = np.max(log_posts, axis=1, keepdims=True)
-    posts = np.exp(log_posts - max_log)
-    posts = posts / posts.sum(axis=1, keepdims=True)
-
-    # 根据损失表计算条件风险，选择风险更小的判决
-    posterior_f = posts[:, 0]
-    posterior_m = posts[:, 1]
-    risk_predict_f = loss_predict_f_when_m * posterior_m
-    risk_predict_m = loss_predict_m_when_f * posterior_f
-    return np.where(risk_predict_f <= risk_predict_m, "F", "M")
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp1-min-risk}。
 
 非参数方法中，Parzen 窗使用高斯核估计类条件密度，$k$ 近邻使用欧氏距离投票。
-\begin{lstlisting}
-def predict_parzen(train_x, train_y, x, features, priors, bandwidth):
-    # 对每个类别估计 Parzen 密度，再代入 Bayes 判别函数
-    x_selected = x[:, features]
-    class_scores = []
-    for label, prior in zip(LABELS, priors):
-        samples = train_x[train_y == label][:, features]
-        density = parzen_density(x_selected, samples, bandwidth)
-        class_scores.append(np.log(density + 1e-300) + math.log(prior))
-    scores = np.vstack(class_scores).T
-    return np.array([LABELS[idx] for idx in np.argmax(scores, axis=1)])
-
-
-def predict_knn(train_x, train_y, x, features, k):
-    # 找到距离测试样本最近的 k 个训练样本，用多数类别作为预测
-    train_selected = train_x[:, features]
-    query = x[:, features]
-    preds = []
-    for row in query:
-        distances = np.linalg.norm(train_selected - row, axis=1)
-        nearest = np.argsort(distances)[:k]
-        labels, counts = np.unique(train_y[nearest], return_counts=True)
-        preds.append(sorted(labels[counts == counts.max()])[0])
-    return np.array(preds)
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp1-nonparametric}。
 
 \subsection{实验步骤与结果分析}
 
@@ -468,6 +437,8 @@ def predict_knn(train_x, train_y, x, features, k):
 \caption{单特征高斯密度估计与 Bayes 判决阈值}
 \label{fig:exp1_single_density}
 \end{figure}
+
+在等先验条件下，单特征 Bayes 分类器可以近似理解为“超过某个阈值更像男生，否则更像女生”。由训练集估计出的高斯密度交点可得，身高特征在主要样本范围内的判决阈值约为 $168.42$ cm，体重特征的主要判决阈值约为 $59.07$ kg。由于男女两类的方差并不完全相同，高斯曲线在远离样本主体区域也可能出现第二个交点，但该交点处样本密度极低，对实际测试样本分类影响很小。
 
 \begin{table}[H]
 \centering
@@ -553,7 +524,7 @@ def predict_knn(train_x, train_y, x, features, k):
 \end{tabular}
 \end{table}
 
-test2 上女生 50 个样本中有 49 个被正确识别，仅 1 个女生被判为男生；但男生中有 46 个被判为女生。也就是说，最小风险决策牺牲了一部分总体准确率，换取了对高损失错误的控制。这体现了模式识别中“最优”与具体任务目标有关：最小错误率追求平均错误少，最小风险追求代价小。
+test2 上女生 50 个样本中有 49 个被正确识别，仅 1 个女生被判为男生；但男生中有 46 个被判为女生。结果表明，在该损失设定下，最小风险决策降低了女生被误判为男生的次数，同时增加了男生被误判为女生的次数。因此，最小错误率准则和最小风险准则对应不同的优化目标：前者最小化平均错误率，后者最小化期望损失。
 
 \subsubsection{步骤五：非参数估计实验}
 
@@ -597,6 +568,8 @@ Parzen 窗和 $k$ 近邻都不强制数据服从高斯分布，因此边界形�
 \label{fig:exp1_confusion}
 \end{figure}
 
+以 test2 为例，二维完整协方差 Bayes 分类器将 50 个女生中的 49 个正确识别为女生，女生召回率为 98.00\%；同时将 250 个男生中的 219 个正确识别为男生，男生召回率为 87.60\%。这说明该分类器对女生样本较敏感，但仍会把一部分靠近边界、身高体重偏低的男生判为女生。二维对角协方差、Parzen 窗和 $k$ 近邻在 test2 上的准确率均为 90.33\%，对应女生召回率为 96.00\%、男生召回率为 89.20\%，整体更均衡。
+
 综合来看，本实验可以得到以下结论：
 \begin{itemize}
   \item 身高和体重都具有性别判别能力，其中身高单特征更稳定；二维联合特征通常优于单特征。
@@ -606,24 +579,221 @@ Parzen 窗和 $k$ 近邻都不强制数据服从高斯分布，因此边界形�
   \item 非参数方法减少了分布假设，边界更灵活，但需要选择窗宽或邻居数等超参数，并且对样本规模和局部分布更敏感。
 \end{itemize}
 
+\subsection{扩展数据集实验}
+
+除男女身高体重数据集外，实验一还按照作业要求补充了模拟高斯数据、UCI Iris、MNIST、CIFAR-10 和 CIFAR-100 数据集上的 Bayes 分类实验。扩展实验仍围绕“参数估计、非参数估计、最小错误率、最小风险”四类 Bayes 决策展开，用于考察同一类分类准则在不同数据复杂度下的适用性。
+
+不同数据集的维数、类别数和样本复杂度差异较大，因此实验设置如下：
+\begin{itemize}
+  \item 模拟数据按 iid 原则由二维多元正态分布生成，包括二类数据和三类数据，每类 200 个样本，训练集与测试集比例为 60\% 和 40\%。
+  \item UCI Iris 使用 4 个连续特征，包括花萼长度、花萼宽度、花瓣长度和花瓣宽度，类别数为 3。
+  \item MNIST、CIFAR-10 和 CIFAR-100 属于高维图像数据。为避免高维协方差矩阵奇异，并控制计算量，先对图像向量进行标准化和 PCA 降维，再在 64 维特征上进行分类。
+  \item 参数估计方法使用高斯 Bayes 分类器。低维数据使用完整协方差矩阵，高维图像数据使用对角协方差矩阵。
+  \item 非参数估计方法中，低维数据使用 Parzen 窗估计类条件概率密度，图像数据使用 $k$ 近邻估计后验概率。
+  \item 最小风险 Bayes 分类器采用统一损失设定：正确分类损失为 0，一般错分损失为 1；第一类样本被误判为其他类时损失为 2。
+\end{itemize}
+
+\subsubsection{模拟高斯数据实验}
+
+模拟数据用于验证 Bayes 分类器在已知数据生成机制下的表现。二类数据和三类数据均由二维高斯分布独立同分布采样生成。每类共有 200 个样本，其中 60\% 作为训练样本，40\% 作为测试样本。由于数据真实来源就是高斯模型，参数高斯 Bayes 在该数据集上具有较强的模型匹配性；Parzen 窗 Bayes 不使用显式高斯假设，主要依靠样本局部密度估计。
+
+图 \ref{fig:exp1_ext_boundary} 和图 \ref{fig:exp1_ext_3class_boundary} 给出了二类和三类模拟数据上的决策边界。二类数据中，两类分布中心相距较远，边界主要穿过两类样本的重叠区域。三类数据中，多个类别之间存在更复杂的相邻关系，因此决策区域被划分为三个部分，边界交汇处更容易产生错分。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment1_extended/simulated_2class_boundaries.pdf}
+\caption{模拟二类高斯数据上的参数 Bayes 与非参数 Bayes 决策边界}
+\label{fig:exp1_ext_boundary}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment1_extended/simulated_3class_boundaries.pdf}
+\caption{模拟三类高斯数据上的参数 Bayes 与非参数 Bayes 决策边界}
+\label{fig:exp1_ext_3class_boundary}
+\end{figure}
+
+二类模拟数据的测试集混淆矩阵如图 \ref{fig:exp1_ext_confusion} 所示。参数高斯 Bayes 和 Parzen 窗 Bayes 均能较好地区分两类样本，错误主要发生在两类分布重叠区域。参数最小错误率 Bayes 在二类测试集上达到 97.50\%，参数最小风险 Bayes 达到 98.75\%；非参数最小错误率 Bayes 为 96.25\%，非参数最小风险 Bayes 为 98.75\%。三类模拟数据中，参数 Bayes 准确率为 90.00\%，非参数 Parzen Bayes 为 89.17\%，低于二类情形，原因是类别数增加后类间重叠和边界交会区域增多。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/simulated_2class_param_confusion.pdf}
+\caption{参数高斯 Bayes}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/simulated_2class_nonparam_confusion.pdf}
+\caption{Parzen 窗 Bayes}
+\end{subfigure}
+\caption{模拟二类高斯数据测试集混淆矩阵}
+\label{fig:exp1_ext_confusion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/simulated_3class_param_confusion.pdf}
+\caption{参数高斯 Bayes}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/simulated_3class_nonparam_confusion.pdf}
+\caption{Parzen 窗 Bayes}
+\end{subfigure}
+\caption{模拟三类高斯数据测试集混淆矩阵}
+\label{fig:exp1_ext_3class_confusion}
+\end{figure}
+
+\subsubsection{UCI Iris 数据集实验}
+
+UCI Iris 数据集包含 3 类鸢尾花，每个样本由花萼长度、花萼宽度、花瓣长度和花瓣宽度 4 个连续特征表示。本实验使用仓库中已划分好的训练集和测试集，分类器在 4 维原始特征标准化后进行训练。由于 Iris 数据类别结构清晰，尤其花瓣相关特征具有较强判别能力，因此它常用于检验传统分类器在低维连续数据上的效果。
+
+图 \ref{fig:exp1_ext_iris_boundary} 将 Iris 样本投影到二维 PCA 平面后绘制参数 Bayes 和 Parzen Bayes 的分类边界。可以看到，一类样本与另外两类分离明显，后两类之间存在少量边界接近区域。图 \ref{fig:exp1_ext_iris_confusion} 给出了测试集混淆矩阵，参数高斯 Bayes 在测试集上达到 100.00\%，Parzen 窗 Bayes 达到 96.67\%。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment1_extended/iris_pca2_boundaries.pdf}
+\caption{UCI Iris 数据集 PCA 二维投影下的分类边界}
+\label{fig:exp1_ext_iris_boundary}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/iris_param_confusion.pdf}
+\caption{参数高斯 Bayes}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/iris_nonparam_confusion.pdf}
+\caption{Parzen 窗 Bayes}
+\end{subfigure}
+\caption{UCI Iris 测试集混淆矩阵}
+\label{fig:exp1_ext_iris_confusion}
+\end{figure}
+
+\subsubsection{MNIST 手写数字数据集实验}
+
+MNIST 数据集由 $28\times 28$ 灰度手写数字图像组成，类别为数字 0--9。原始图像展开后为 784 维向量，如果直接估计完整协方差矩阵，容易出现维数过高、协方差矩阵奇异和计算量过大的问题。因此本实验先对图像向量进行标准化，再用 PCA 降到 64 维，累计方差贡献率为 66.50\%。参数方法使用对角协方差高斯 Bayes，非参数方法使用 $k=5$ 的 $k$ 近邻。
+
+图 \ref{fig:exp1_ext_mnist_confusion} 给出了 MNIST 上 $k$ 近邻分类器的混淆矩阵。图 \ref{fig:exp1_ext_mnist_projection} 展示测试样本在 PCA 前两维上的投影，蓝色点表示分类正确，红色叉号表示分类错误。图 \ref{fig:exp1_ext_mnist_examples} 展示部分测试样本的预测效果。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.58\textwidth]{figures/experiment1_extended/mnist_knn_confusion.pdf}
+\caption{MNIST 数据集 $k$ 近邻 Bayes 测试集混淆矩阵}
+\label{fig:exp1_ext_mnist_confusion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.66\textwidth]{figures/experiment1_extended/mnist_pca_prediction_projection.pdf}
+\caption{MNIST 测试样本 PCA 投影及分类正确性}
+\label{fig:exp1_ext_mnist_projection}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment1_extended/mnist_prediction_examples.pdf}
+\caption{MNIST 部分测试样本预测效果}
+\label{fig:exp1_ext_mnist_examples}
+\end{figure}
+
+MNIST 上对角高斯 Bayes 准确率为 62.65\%，$k$ 近邻非参数方法达到 89.75\%。该结果说明手写数字在 PCA 特征空间中并不符合简单的单峰高斯分布假设，不同书写风格会使同一数字类别形成多个局部结构；$k$ 近邻利用局部邻域样本标签，因此在该数据集上明显优于对角高斯模型。
+
+\subsubsection{CIFAR-10 与 CIFAR-100 图像数据集实验}
+
+CIFAR-10 和 CIFAR-100 均为 $32\times 32$ 彩色自然图像数据集。CIFAR-10 包含 10 类，CIFAR-100 包含 100 类，后者类别更细、类间差异更小。与 MNIST 相比，CIFAR 图像包含颜色、背景、姿态、尺度和纹理变化，原始像素特征与类别语义之间的关系更复杂。本实验同样采用标准化和 PCA 64 维特征，再使用对角高斯 Bayes 与 $k$ 近邻进行分类。
+
+图 \ref{fig:exp1_ext_cifar10_confusion} 给出了 CIFAR-10 参数高斯 Bayes 的测试集混淆矩阵，图 \ref{fig:exp1_ext_cifar_projection} 给出了 CIFAR-10 和 CIFAR-100 在 PCA 前两维上的分类正确性分布。可以看到，CIFAR 样本在低维 PCA 平面上重叠明显，错误样本大量分布在各类别混合区域中。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.58\textwidth]{figures/experiment1_extended/cifar10_param_confusion.pdf}
+\caption{CIFAR-10 参数高斯 Bayes 测试集混淆矩阵}
+\label{fig:exp1_ext_cifar10_confusion}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/cifar10_pca_prediction_projection.pdf}
+\caption{CIFAR-10}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/cifar100_pca_prediction_projection.pdf}
+\caption{CIFAR-100}
+\end{subfigure}
+\caption{CIFAR 数据集 PCA 投影及分类正确性}
+\label{fig:exp1_ext_cifar_projection}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/cifar10_prediction_examples.pdf}
+\caption{CIFAR-10}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment1_extended/cifar100_prediction_examples.pdf}
+\caption{CIFAR-100}
+\end{subfigure}
+\caption{CIFAR 部分测试样本预测效果}
+\label{fig:exp1_ext_cifar_examples}
+\end{figure}
+
+CIFAR-10 上参数高斯 Bayes 准确率为 33.05\%，CIFAR-100 上为 16.50\%，均高于随机猜测，但明显低于 MNIST。非参数 $k$ 近邻在 CIFAR-10 上为 30.30\%，在 CIFAR-100 上为 10.65\%。结果表明，对于复杂自然图像，仅使用 PCA 压缩后的像素特征难以形成稳定、可分的类别结构；传统 Bayes 分类器可以作为基线方法，但需要更有效的图像特征或深度模型才能获得较高性能。
+
+\subsubsection{扩展数据集结果汇总}
+
+各扩展数据集上的分类准确率汇总如表 \ref{tab:exp1_extended_summary} 所示，对应的准确率柱状图见图 \ref{fig:exp1_ext_accuracy}。
+
+\begin{table}[H]
+\centering
+\caption{实验一扩展数据集 Bayes 分类结果}
+\label{tab:exp1_extended_summary}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\input{../results/experiment1_extended/summary_table.tex}
+\endgroup
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/experiment1_extended/extended_accuracy_comparison.pdf}
+\caption{扩展数据集上四类 Bayes 分类方法准确率比较}
+\label{fig:exp1_ext_accuracy}
+\end{figure}
+
+综合各数据集结果可得：当数据分布与高斯假设接近时，参数 Bayes 分类器效果较好；当类别分布呈现多峰局部结构时，非参数方法更有优势；当数据为复杂自然图像时，分类性能主要受特征表示限制，简单 PCA 像素特征不足以充分表达类别语义。
+
 \subsection{体会}
 
-通过本实验可以更直观地理解 Bayes 分类器的完整工作链条：先从训练样本估计概率密度，再结合先验概率形成判别函数，最后在测试集上用准确率、召回率和混淆矩阵评价分类器性能。实验也说明，理论公式中的每一项都有实际含义：均值决定类别中心，协方差决定分布形状，先验决定边界偏移，损失函数决定分类器对不同错误的态度。对于模式识别任务，模型并不是越复杂越好，而应结合数据规模、分布假设、类别比例和实际代价共同选择。
+通过本实验，我对 Bayes 分类器的认识从“会写判别公式”进一步变成了“理解公式背后的条件”。同样是比较后验概率，先验概率、密度估计方法、协方差假设和损失函数都会改变最后的分类结果。因此，分类器并不是孤立存在的，它和数据分布、特征选择以及任务目标是联系在一起的。
+
+实验中比较有体会的一点是：模型假设不能脱离数据本身。高斯 Bayes 在一些分布清楚、维数较低的数据上表现较稳定，是因为模型假设和数据特点比较一致；但遇到更复杂的数据时，简单的高斯假设就会显得不够。非参数方法虽然少了一些分布假设，但也带来了窗宽、邻居数、样本规模等新的问题。这让我认识到，所谓“更复杂的方法”并不一定总是更好，关键还是看它是否适合当前数据。
+
+另一个收获是对“最优分类”的理解更加具体了。最小错误率追求总体错误少，最小风险则强调错误代价小。实际任务中，如果不同错误的后果不同，就不能只看准确率一个指标。分类结果需要结合混淆矩阵、召回率和任务代价一起分析，这比单纯给出一个准确率更有意义。
+
 \clearpage
 \section{实验二：非参数估计、Fisher 线性判别与留一法实验}
 
-\subsection{姓名、学号、班级、题目}
-
-\begin{itemize}
-  \item 姓名：\studentname
-  \item 学号：\studentid
-  \item 班级：\studentclass
-  \item 题目：用身高/体重数据进行性别分类的实验（二）
-\end{itemize}
-
 \subsection{模式识别理论知识}
 
-实验一主要从概率密度估计出发，在正态分布假设下建立参数化 Bayes 分类器。实验二继续使用男女身高体重数据，重点比较三类思想：非参数概率密度估计、直接设计线性分类器、以及留一法错误率估计。
+实验一主要从概率密度估计出发，在正态分布假设下建立参数化 Bayes 分类器。实验二继续使用男女身高体重数据，重点比较三类方法：非参数概率密度估计、直接设计线性分类器、以及留一法错误率估计。
 
 \subsubsection{非参数估计与 Parzen 窗 Bayes 分类器}
 
@@ -671,6 +841,23 @@ J(\boldsymbol{w})=\frac{\boldsymbol{w}^T S_b\boldsymbol{w}}{\boldsymbol{w}^T S_w
 \boldsymbol{w}^T\boldsymbol{x}=t.
 \]
 
+\subsubsection{多类情形下的 LDA 扩展}
+
+Fisher 线性判别最常见的推导形式是二分类。对于 Iris、MNIST、CIFAR 等多分类数据，可以将二分类 Fisher 判别推广为线性判别分析（Linear Discriminant Analysis, LDA）。设共有 $C$ 个类别，第 $i$ 类均值为 $\boldsymbol{\mu}_i$，总体均值为 $\boldsymbol{\mu}$，类内散度矩阵和类间散度矩阵分别为
+\[
+S_w=\sum_{i=1}^{C}\sum_{\boldsymbol{x}\in\omega_i}
+(\boldsymbol{x}-\boldsymbol{\mu}_i)(\boldsymbol{x}-\boldsymbol{\mu}_i)^T,
+\]
+\[
+S_b=\sum_{i=1}^{C}N_i
+(\boldsymbol{\mu}_i-\boldsymbol{\mu})(\boldsymbol{\mu}_i-\boldsymbol{\mu})^T.
+\]
+LDA 的目标是在投影后增大类间散度、减小类内散度，可写为广义 Fisher 准则
+\[
+J(W)=\frac{|W^TS_bW|}{|W^TS_wW|}.
+\]
+当类别数为 2 时，LDA 退化为前述 Fisher 线性判别；当类别数大于 2 时，LDA 可以得到最多 $C-1$ 个判别方向，并在这些线性判别函数上完成分类。本实验在扩展数据集上使用 LDA 作为 Fisher 方法的多类实现。
+
 \subsubsection{留一法错误率估计}
 
 留一法是一种交叉验证方法。对于 $N$ 个训练样本，每次取出 1 个样本作为验证样本，用剩余 $N-1$ 个样本重新训练分类器，再测试被取出的样本。重复 $N$ 次后，错误率为
@@ -691,6 +878,14 @@ J(\boldsymbol{w})=\frac{\boldsymbol{w}^T S_b\boldsymbol{w}}{\boldsymbol{w}^T S_w
   \item 非参数 Bayes：高斯核 Parzen 窗，窗宽 $h=5.0$，等先验 $P(F)=P(M)=0.5$。
   \item 线性分类器：Fisher 线性判别，使用训练集计算投影方向和阈值。
   \item 错误率估计：分别计算训练集错误率、test1 错误率、test2 错误率和留一法错误率。
+\end{itemize}
+
+为了进一步比较三类方法在不同数据复杂度下的表现，本实验还补充模拟高斯数据、UCI Iris、MNIST、CIFAR-10 和 CIFAR-100 数据集。扩展数据集的设置如下：
+\begin{itemize}
+  \item 模拟高斯数据使用二维特征；参数、非参数和线性方法分别采用高斯 Bayes、Parzen 窗和 Fisher/LDA。
+  \item UCI Iris 使用 4 维花萼、花瓣特征，先标准化后进行分类；为便于观察边界，图中将样本投影到 PCA 二维平面。
+  \item MNIST、CIFAR-10 和 CIFAR-100 为高维图像数据，先将图像向量标准化并降到 PCA 64 维，再分别使用对角高斯 Bayes、$k$ 近邻和 LDA 分类。
+  \item 图像数据训练样本数量较大，完整留一法计算量很高，因此在分层抽取的小训练子集上估计留一法错误率；测试错误率仍在独立测试集上计算。
 \end{itemize}
 
 \subsection{程序框图与代码实现}
@@ -716,77 +911,16 @@ J(\boldsymbol{w})=\frac{\boldsymbol{w}^T S_b\boldsymbol{w}}{\boldsymbol{w}^T S_w
 \end{figure}
 
 实验二程序位于 \texttt{scripts/experiment2\_linear.py}。Parzen 窗部分先对每一类样本计算核密度，再代入 Bayes 判别函数。
-\begin{lstlisting}
-def parzen_density(query, samples, bandwidth):
-    # query 是待分类样本，samples 是某一类训练样本
-    # 使用高斯核函数估计 query 在该类别下的概率密度
-    diff = query[:, None, :] - samples[None, :, :]
-    exponent = -0.5 * np.sum((diff / bandwidth) ** 2, axis=2)
-    coef = 1.0 / ((2 * math.pi) ** (samples.shape[1] / 2)
-                  * bandwidth ** samples.shape[1])
-    return coef * np.exp(exponent).mean(axis=1)
-
-
-def predict_parzen(train_x, train_y, query, bandwidth, priors=PRIOR_EQUAL):
-    # 分别估计女生和男生的 Parzen 密度，再比较 Bayes 对数得分
-    scores = []
-    for label, prior in zip(LABELS, priors):
-        samples = train_x[train_y == label]
-        density = parzen_density(query, samples, bandwidth)
-        scores.append(np.log(density + 1e-300) + math.log(prior))
-    score_matrix = np.vstack(scores).T
-    return np.array([LABELS[idx] for idx in np.argmax(score_matrix, axis=1)])
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp2-parzen}。
 
 Fisher 线性判别部分先计算两类均值和类内散度矩阵，再得到投影方向和阈值。
-\begin{lstlisting}
-def fit_fisher(x, y):
-    # 取出女生和男生样本
-    f = x[y == "F"]
-    m = x[y == "M"]
-    mean_f = f.mean(axis=0)
-    mean_m = m.mean(axis=0)
-
-    # 类内散度矩阵 Sw，反映同类样本内部的离散程度
-    sw = (f - mean_f).T @ (f - mean_f) + (m - mean_m).T @ (m - mean_m)
-
-    # Fisher 最优投影方向：Sw 的伪逆乘以类均值差
-    w = np.linalg.pinv(sw) @ (mean_m - mean_f)
-
-    # 把训练样本投影到一维，并取两类投影均值中点作为阈值
-    proj_f = f @ w
-    proj_m = m @ w
-    threshold = 0.5 * (proj_f.mean() + proj_m.mean())
-    direction = 1.0 if proj_m.mean() > proj_f.mean() else -1.0
-    return {"w": w, "threshold": np.array([threshold]), "direction": np.array([direction])}
-
-
-def predict_fisher(model, x):
-    # 计算投影值，超过阈值则判为男生，否则判为女生
-    scores = x @ model["w"]
-    threshold = float(model["threshold"][0])
-    direction = float(model["direction"][0])
-    is_m = scores >= threshold if direction > 0 else scores < threshold
-    return np.where(is_m, "M", "F")
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp2-fisher}。
 
 留一法部分每次屏蔽一个训练样本，用其余样本重新训练模型，再判断被屏蔽样本是否分类正确。
-\begin{lstlisting}
-def loo_error_fisher(x, y):
-    # 对训练集中的每一个样本做一次“留一”验证
-    errors = 0
-    for idx in range(len(x)):
-        mask = np.ones(len(x), dtype=bool)
-        mask[idx] = False
+相关实现见附录代码~\ref{lst:exp2-loo}。
 
-        # 用剩余 N-1 个样本重新训练 Fisher 分类器
-        model = fit_fisher(x[mask], y[mask])
-
-        # 用训练好的模型预测被留下的这个样本
-        pred = predict_fisher(model, x[idx : idx + 1])[0]
-        errors += int(pred != y[idx])
-    return errors / len(x)
-\end{lstlisting}
+扩展数据集实验位于 \texttt{scripts/experiment2\_extended\_datasets.py}。其中低维数据使用 Parzen 窗作为非参数方法，图像数据使用 $k$ 近邻，Fisher 多类扩展使用 LDA。
+相关实现见附录代码~\ref{lst:exp2-extended}。
 
 \subsection{实验步骤与结果分析}
 
@@ -846,31 +980,175 @@ Fisher 分类器得到的是一条直线边界，形式简单，计算量小；B
 
 留一法结果显示，参数高斯 Bayes、Parzen 窗 Bayes 和 Fisher 线性判别的留一法错误率分别为 12.00\%、14.00\% 和 13.00\%。这些结果与训练错误率和 test2 错误率大体接近，说明留一法能够在训练样本较少时给出较合理的泛化误差估计。test1 错误率均为 2.86\%，明显低于留一法和 test2 错误率，主要原因是 test1 样本量仅 35 个，偶然性更强；test2 样本量为 300 个，更能反映分类器在较大测试集上的表现。
 
+\subsection{扩展数据集实验}
+
+扩展实验保持“参数 Bayes 基线、非参数方法、Fisher/LDA 线性方法”三类分类器的比较方式。低维数据保留二维或四维连续特征，图像数据使用 PCA 特征，使传统分类器能够在可控计算量下完成训练和测试。
+
+\subsubsection{模拟高斯数据}
+
+模拟数据的真实分布为高斯分布，参数 Bayes 与数据生成假设匹配，Fisher/LDA 则只使用线性判别面。图 \ref{fig:exp2_ext_sim_boundary} 给出了二类和三类模拟数据上的 LDA 与 Parzen 决策区域。二类数据中，两类样本主要由一条近似线性边界分开，因此 LDA 和 Parzen 的结果接近；三类数据中，类别边界出现交会区域，Parzen 边界对局部样本分布的响应更明显。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/simulated_2class_lda_parzen_boundary.pdf}
+\caption{二类模拟数据}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/simulated_3class_lda_parzen_boundary.pdf}
+\caption{三类模拟数据}
+\end{subfigure}
+\caption{模拟数据上的 Fisher/LDA 与 Parzen 决策边界}
+\label{fig:exp2_ext_sim_boundary}
+\end{figure}
+
+图 \ref{fig:exp2_ext_sim_confusion} 给出了 LDA 在模拟数据测试集上的混淆矩阵。二类模拟数据 LDA 测试错误率为 3.75\%，三类模拟数据为 10.00\%。类别数增加后，边界附近样本增多，错分主要集中在相邻类别之间。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.45\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/simulated_2class_lda_confusion.pdf}
+\caption{二类 LDA}
+\end{subfigure}
+\begin{subfigure}{0.45\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/simulated_3class_lda_confusion.pdf}
+\caption{三类 LDA}
+\end{subfigure}
+\caption{模拟数据 Fisher/LDA 测试集混淆矩阵}
+\label{fig:exp2_ext_sim_confusion}
+\end{figure}
+
+\subsubsection{UCI Iris 数据}
+
+Iris 数据具有 3 个类别和 4 个连续特征。图 \ref{fig:exp2_ext_iris} 将样本投影到 PCA 二维平面后绘制 LDA 与 $k$ 近邻边界。Iris 中一类样本与另外两类分离明显，后两类之间存在少量重叠，因此 LDA 在测试集上达到 0.00\% 错误率，Parzen 窗错误率为 3.33\%。这说明当类别结构接近线性可分时，直接设计线性判别函数可以得到非常稳定的结果。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.55\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/iris_lda_knn_boundary.pdf}
+\caption{PCA 二维平面分类边界}
+\end{subfigure}
+\begin{subfigure}{0.36\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/iris_lda_confusion.pdf}
+\caption{LDA 混淆矩阵}
+\end{subfigure}
+\caption{UCI Iris 数据上的 LDA 与非参数方法}
+\label{fig:exp2_ext_iris}
+\end{figure}
+
+\subsubsection{MNIST 与 CIFAR 图像数据}
+
+MNIST 手写数字的主要变化与数字形状相关，PCA 64 维特征已经保留了较多有用结构。图 \ref{fig:exp2_ext_mnist} 中，LDA 测试错误率为 19.55\%，$k$ 近邻错误率为 10.45\%。这说明 MNIST 中同一数字的局部相似性较强，非参数近邻投票比单一线性判别函数更适合该数据。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/mnist_lda_confusion.pdf}
+\caption{LDA 混淆矩阵}
+\end{subfigure}
+\begin{subfigure}{0.50\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/mnist_lda_projection.pdf}
+\caption{LDA 预测正确与错误样本投影}
+\end{subfigure}
+\caption{MNIST 数据上的 Fisher/LDA 分类结果}
+\label{fig:exp2_ext_mnist}
+\end{figure}
+
+图 \ref{fig:exp2_ext_mnist_examples} 展示了 MNIST 测试样本中 LDA 的部分预测结果。图像上方标注中，T 表示真实类别，P 表示预测类别；绿色表示预测正确，红色表示预测错误。可以看到，错误样本多出现在笔画形状相近或书写方式不典型的数字之间，例如 4、7、9 等类别之间更容易混淆。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{figures/experiment2_extended/mnist_lda_examples.pdf}
+\caption{MNIST 数据 LDA 部分测试样本预测结果}
+\label{fig:exp2_ext_mnist_examples}
+\end{figure}
+
+CIFAR-10 和 CIFAR-100 的图像包含物体姿态、背景、颜色和纹理变化，PCA 特征不能直接形成清晰的类别边界。图 \ref{fig:exp2_ext_cifar} 中，CIFAR-10 上 LDA 错误率为 63.67\%，仍优于对角高斯 Bayes 的 66.28\% 和 $k$ 近邻的 70.44\%；CIFAR-100 类别数更多、类间差异更细，LDA 错误率为 85.47\%。这些结果说明，在线性特征空间中，传统分类器能够给出可解释基线，但对复杂自然图像的表达能力有限。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/cifar10_lda_confusion.pdf}
+\caption{CIFAR-10 LDA 混淆矩阵}
+\end{subfigure}
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/cifar10_lda_projection.pdf}
+\caption{CIFAR-10 投影}
+\end{subfigure}
+\begin{subfigure}{0.32\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/cifar100_lda_projection.pdf}
+\caption{CIFAR-100 投影}
+\end{subfigure}
+\caption{CIFAR 图像数据上的 Fisher/LDA 分类结果}
+\label{fig:exp2_ext_cifar}
+\end{figure}
+
+图 \ref{fig:exp2_ext_cifar_examples} 给出了 CIFAR-10 和 CIFAR-100 的部分测试图像预测结果。与 MNIST 相比，CIFAR 图像中的目标尺寸、背景和纹理变化更复杂，许多样本即使人眼观察也需要依赖整体语义信息，而 PCA 后的像素特征主要保留总体方差，难以稳定表达物体类别，因此红色错误样本比例明显更高。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/cifar10_lda_examples.pdf}
+\caption{CIFAR-10}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment2_extended/cifar100_lda_examples.pdf}
+\caption{CIFAR-100}
+\end{subfigure}
+\caption{CIFAR 数据 LDA 部分测试样本预测结果}
+\label{fig:exp2_ext_cifar_examples}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{实验二扩展数据集错误率汇总}
+\label{tab:exp2_ext_summary}
+\input{../results/experiment2_extended/summary_table.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/experiment2_extended/extended_error_comparison.pdf}
+\caption{扩展数据集上三类分类器测试错误率比较}
+\label{fig:exp2_ext_error_compare}
+\end{figure}
+
+表 \ref{tab:exp2_ext_summary} 和图 \ref{fig:exp2_ext_error_compare} 表明，低维连续数据上 Gaussian Bayes 和 Fisher/LDA 通常更稳定；图像数据上，MNIST 的局部邻域结构明显，$k$ 近邻优于 LDA 和对角高斯 Bayes，而 CIFAR 数据对特征表达要求更高，简单 PCA 特征下三类传统分类器的错误率都较高。
+
 \subsection{综合实验结果与分析总结}
 
 \begin{itemize}
   \item 参数高斯 Bayes 假设类条件概率密度服从二维正态分布，模型结构清晰，训练样本较少时较稳定，但边界形状受分布假设限制。
   \item Parzen 窗 Bayes 不预设固定分布形状，可以利用样本局部结构，test2 错误率由参数 Bayes 的 10.67\% 降至 9.67\%，但对窗宽 $h$ 较敏感。
   \item Fisher 线性判别不估计概率密度，而是直接寻找最佳投影方向；在本数据集上，简单线性边界已能取得与 Parzen 窗 Bayes 相同的 test2 错误率。
-  \item 留一法通过重复训练和验证估计泛化误差，适合小样本数据。它比单纯训练错误率更能反映模型面对未知样本时的表现。
+  \item 留一法通过重复训练和验证估计泛化误差，适合小样本数据。图像数据上由于样本规模较大，本实验采用分层子集进行留一法估计。
+  \item 扩展数据集说明，Fisher/LDA 在类间均值差异明显、类内分布较集中的数据上表现较好；非参数方法在局部相似性明显的数据上更有优势，但对样本量、距离度量和参数选择更敏感。
 \end{itemize}
 
-整体来看，男女身高体重数据具有较明显的线性可分趋势，因此 Fisher 线性判别表现很好；同时，边界附近仍存在局部重叠，Parzen 窗等非参数方法能通过局部密度估计对部分样本做出更灵活的判断。参数 Bayes、非参数 Bayes 和 Fisher 线性判别在本实验中的性能接近，也说明该数据集整体结构比较简单，分类结果更多受边界重叠样本影响。
+男女身高体重数据具有较明显的线性可分趋势，因此 Fisher 线性判别表现很好；同时，边界附近仍存在局部重叠，Parzen 窗等非参数方法能通过局部密度估计对部分样本做出更灵活的判断。参数 Bayes、非参数 Bayes 和 Fisher 线性判别在该数据集中的性能接近，分类结果主要受边界重叠样本影响。扩展到 MNIST、CIFAR 等图像数据后，分类器差异更多来自特征表达是否充分，PCA 特征虽然降低了维数，但并不能完全表示复杂图像的类别结构。
 
 \subsection{体会}
 
-通过实验二可以体会到，模式识别中分类器设计并不只有“估计概率密度再分类”这一条路线。Bayes 方法强调概率模型，Parzen 窗强调由样本估计局部密度，Fisher 方法则强调直接寻找有判别力的投影方向。三者的出发点不同，但最终都在试图把男女样本有效分开。留一法实验也说明，小样本条件下不能只看训练集表现，应结合交叉验证和独立测试集共同判断模型的泛化能力。
+这次实验让我更明显地感受到，分类器的形式简单并不一定代表效果差。对于男女身高体重和 Iris 这类结构清晰的数据，线性判别已经能够抓住主要差异；而在 MNIST、CIFAR 这类图像数据上，分类困难并不只来自分类器本身，更多来自特征是否真正表达了类别信息。留一法也提醒我，训练集上的一次结果并不充分，尤其在样本较少时，需要用交叉验证去估计模型面对新样本时可能出现的误差。
+
+非参数方法的结果让我认识到，模型少一些分布假设并不等于使用起来更简单。Parzen 窗需要选择窗宽，$k$ 近邻需要选择邻居数和距离度量；这些参数改变后，边界平滑程度和局部敏感性都会变化。因此在报告分类效果时，除了给出错误率，还应说明参数取值和特征预处理方式。
+
+Fisher/LDA 的优点是计算过程清楚、判别方向容易解释，适合用来分析数据中主要的类间差异。它的局限也比较明显：如果类别边界本身不是线性的，或者原始特征没有把类别结构展开，再好的线性判别面也只能给出有限的改进。这一点在 CIFAR 数据上表现得很明显。
 \clearpage
 \section{实验三：K-L 变换特征提取实验}
-
-\subsection{姓名、学号、班级、题目}
-
-\begin{itemize}
-  \item 姓名：\studentname
-  \item 学号：\studentid
-  \item 班级：\studentclass
-  \item 题目：利用 K-L 变换进行特征提取的实验
-\end{itemize}
 
 \subsection{模式识别理论知识}
 
@@ -892,6 +1170,19 @@ C\boldsymbol{u}_k=\lambda_k\boldsymbol{u}_k.
 \[
 y=\boldsymbol{u}_1^T\boldsymbol{x}.
 \]
+若选取前 $m$ 个特征值对应的特征向量组成投影矩阵
+\[
+U_m=[\boldsymbol{u}_1,\boldsymbol{u}_2,\ldots,\boldsymbol{u}_m],
+\]
+则样本可变换为 $m$ 维 K-L/PCA 特征：
+\[
+\boldsymbol{z}=U_m^T(\boldsymbol{x}-\boldsymbol{\mu}).
+\]
+前 $m$ 个主成分保留的累计方差比例为
+\[
+\eta_m=\frac{\sum_{k=1}^{m}\lambda_k}{\sum_{k=1}^{d}\lambda_k}.
+\]
+该比例用于衡量降维后保留了多少总体变化信息。后续扩展数据集实验中，低维数据直接观察前两个主成分，图像数据选取前 64 个主成分，并比较第一主成分、多个主成分和监督 LDA 投影的分类效果。
 
 需要注意的是，K-L/PCA 的目标是“保留总体方差”，不是“最大化类别可分性”。如果类别差异刚好也是总体方差的主要来源，PCA 主方向会有较好的分类能力；如果最大方差来自与类别无关的因素，PCA 方向不一定适合分类。
 
@@ -953,6 +1244,14 @@ C=
 \]
 可以看到，第一主成分方向与类均值差方向非常接近，说明该数据集中总体方差最大的方向基本也是男女类别均值分离的方向。
 
+扩展实验继续使用实验一、实验二中已经准备好的模拟高斯数据、UCI Iris、MNIST、CIFAR-10 和 CIFAR-100 数据集。为了突出 K-L/PCA 的特征提取作用，各数据集统一按如下方式处理：
+\begin{itemize}
+  \item 连续低维数据先进行标准化，再计算 PCA 主方向，并比较 PC1、前若干主成分和 LDA 监督投影的分类效果。
+  \item 图像数据先展开为像素向量并标准化，再计算前 64 个 PCA 主成分，使用最近质心分类器在 PCA 空间中分类。
+  \item 同时绘制 PCA 二维投影和 LDA 二维投影，用于比较“最大方差方向”和“类别判别方向”的差异。
+  \item MNIST、CIFAR-10 和 CIFAR-100 额外绘制部分测试图像预测结果，观察 PCA 特征下哪些样本容易分类错误。
+\end{itemize}
+
 \subsection{程序框图与代码实现}
 
 \begin{figure}[H]
@@ -974,66 +1273,16 @@ C=
 \end{figure}
 
 实验三程序位于 \texttt{scripts/experiment3\_kl.py}。K-L/PCA 的核心代码如下：
-\begin{lstlisting}
-def fit_pca_kl(x):
-    # 计算总体均值，并对样本中心化
-    mean = x.mean(axis=0)
-    centered = x - mean
-
-    # 最大似然形式的总体协方差矩阵，分母取样本数 N
-    cov = centered.T @ centered / len(x)
-
-    # 对协方差矩阵做特征值分解
-    eigvals, eigvecs = np.linalg.eigh(cov)
-
-    # 按特征值从大到小排列，第一列就是第一主成分方向
-    order = np.argsort(eigvals)[::-1]
-    eigvals = eigvals[order]
-    eigvecs = eigvecs[:, order]
-    return {"mean": mean, "cov": cov, "eigvals": eigvals, "eigvecs": eigvecs}
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp3-pca}。
 
 一维投影分类器的实现如下。它既可以用于第一主成分方向，也可以用于类均值差方向。
-\begin{lstlisting}
-def fit_projection_classifier(x, y, direction):
-    # 将二维样本投影到给定方向上，得到一维特征
-    proj = x @ direction
-
-    # 分别计算女生和男生在该方向上的投影均值
-    mean_f = proj[y == "F"].mean()
-    mean_m = proj[y == "M"].mean()
-
-    # 阈值取两个类别投影均值的中点
-    threshold = 0.5 * (mean_f + mean_m)
-    sign = 1.0 if mean_m > mean_f else -1.0
-    return {"direction": direction, "threshold": np.array([threshold]), "sign": np.array([sign])}
-
-
-def predict_projection(model, x):
-    # 根据投影值与阈值的关系进行二分类
-    scores = x @ model["direction"]
-    threshold = float(model["threshold"][0])
-    sign = float(model.get("sign", np.array([1.0]))[0])
-    is_m = scores >= threshold if sign > 0 else scores < threshold
-    return np.where(is_m, "M", "F")
-\end{lstlisting}
+相关实现见附录代码~\ref{lst:exp3-projection}。
 
 类均值差方向直接利用类别标签计算：
-\begin{lstlisting}
-def fit_mean_direction(x, y):
-    # 分别计算男女类别均值
-    mean_f = x[y == "F"].mean(axis=0)
-    mean_m = x[y == "M"].mean(axis=0)
+相关实现见附录代码~\ref{lst:exp3-mean-direction}。
 
-    # 类均值差方向，并归一化为单位向量
-    direction = mean_m - mean_f
-    direction = direction / np.linalg.norm(direction)
-
-    # 阈值取两个类均值中点在该方向上的投影
-    midpoint = 0.5 * (mean_f + mean_m)
-    threshold = float(midpoint @ direction)
-    return {"direction": direction, "threshold": np.array([threshold])}
-\end{lstlisting}
+扩展数据集实验位于 \texttt{scripts/experiment3\_extended\_datasets.py}，主要实现 PCA 特征提取、累计方差统计、最近质心分类、LDA 对比和图像预测样例绘制。
+相关实现见附录代码~\ref{lst:exp3-extended}。
 
 \subsection{实验步骤与结果分析}
 
@@ -1093,6 +1342,145 @@ K-L/PCA 第一主成分分类在训练集上的准确率为 86.00\%，在 \textt
 \input{../results/experiment3_kl/summary_table.tex}
 \end{table}
 
+\subsection{扩展数据集实验}
+
+扩展实验用于观察 K-L/PCA 在不同类型数据上的特征提取效果。评价时不只看分类准确率，还观察第一主成分的方差贡献率、前若干主成分的累计方差贡献率，以及 PCA 投影与 LDA 投影的差异。PCA 不使用类别标签，LDA 使用类别标签，因此二者的对比可以反映“保留总体变化”和“增强类别可分性”之间的区别。
+
+\subsubsection{模拟高斯数据}
+
+图 \ref{fig:exp3_ext_sim} 给出了模拟二类和三类高斯数据的 PCA 与 LDA 投影结果。二类数据中，第一主成分解释 77.04\% 的方差，PC1 分类准确率达到 97.50\%，说明数据的最大方差方向与类别分离方向基本一致。三类数据中，第一主成分只解释 54.05\% 的方差，PC1 分类准确率降为 64.17\%；使用前两个 PCA 主成分后准确率提高到 89.17\%，接近 LDA 的 90.00\%。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/simulated_2class_pca_lda_projection.pdf}
+\caption{二类模拟数据}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/simulated_3class_pca_lda_projection.pdf}
+\caption{三类模拟数据}
+\end{subfigure}
+\caption{模拟数据的 PCA/K-L 投影与 LDA 投影比较}
+\label{fig:exp3_ext_sim}
+\end{figure}
+
+二类模拟数据的 PC1 投影分布如图 \ref{fig:exp3_ext_sim_pc1} 所示。两类样本在 PC1 上分离明显，因此一维主成分已经可以完成较好分类。这与男女身高体重数据中的现象相似：当最大方差方向同时也是类间分离方向时，K-L/PCA 能得到较好的分类特征。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.70\textwidth]{figures/experiment3_extended/simulated_2class_pc1_distribution.pdf}
+\caption{模拟二类高斯数据在第一主成分上的投影分布}
+\label{fig:exp3_ext_sim_pc1}
+\end{figure}
+
+\subsubsection{UCI Iris 数据}
+
+Iris 数据的第一主成分解释 72.93\% 的方差，使用 PC1 分类准确率为 93.33\%。图 \ref{fig:exp3_ext_iris} 中 PCA 平面已经能较好地区分 Setosa 类，但另外两类在 PCA 空间中仍有一定接近；LDA 投影由于使用类别标签，类间分离更明显，测试准确率达到 100.00\%。这说明 PCA 的最大方差方向不一定完全等同于最优判别方向。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.58\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/iris_pca_lda_projection.pdf}
+\caption{PCA 与 LDA 投影}
+\end{subfigure}
+\begin{subfigure}{0.34\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/iris_pca_confusion.pdf}
+\caption{PCA 最近质心混淆矩阵}
+\end{subfigure}
+\caption{UCI Iris 数据的 K-L/PCA 特征提取结果}
+\label{fig:exp3_ext_iris}
+\end{figure}
+
+\subsubsection{MNIST 与 CIFAR 图像数据}
+
+图像数据维数高，单个主成分只能描述整体像素变化的一部分。图 \ref{fig:exp3_ext_variance} 给出了 MNIST、CIFAR-10 和 CIFAR-100 前 64 个主成分的累计方差曲线。MNIST 前 64 个主成分累计解释 67.28\% 的方差，CIFAR-10 和 CIFAR-100 分别为 86.36\% 和 87.58\%。CIFAR 数据的累计方差较高并不代表分类更容易，因为这些方差中包含背景、颜色和纹理等与类别不完全一致的变化。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{figures/experiment3_extended/image_explained_variance.pdf}
+\caption{图像数据 K-L/PCA 累计方差贡献率}
+\label{fig:exp3_ext_variance}
+\end{figure}
+
+MNIST 的 PCA 与 LDA 投影如图 \ref{fig:exp3_ext_mnist} 所示。PC1 只解释 6.26\% 的方差，单独使用 PC1 分类准确率为 27.80\%；使用 64 维 PCA 特征和最近质心分类器后，准确率提高到 74.30\%；LDA 监督投影达到 82.25\%。这说明手写数字识别不能只依赖一个最大方差方向，多个主成分共同保留的笔画结构才具有更强判别能力。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/mnist_pca_lda_projection.pdf}
+\caption{PCA 与 LDA 投影}
+\end{subfigure}
+\begin{subfigure}{0.42\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/mnist_pca_confusion.pdf}
+\caption{PCA 最近质心混淆矩阵}
+\end{subfigure}
+\caption{MNIST 数据的 K-L/PCA 特征提取结果}
+\label{fig:exp3_ext_mnist}
+\end{figure}
+
+图 \ref{fig:exp3_ext_mnist_examples} 给出了 MNIST 的部分测试样本预测结果。绿色标题表示预测正确，红色标题表示预测错误。错误样本多出现在书写形态接近或笔画不完整的数字之间，说明 PCA 像素特征对局部笔画差异的表达仍有限。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{figures/experiment3_extended/mnist_pca_examples.pdf}
+\caption{MNIST 数据 PCA 特征分类的部分测试样本预测结果}
+\label{fig:exp3_ext_mnist_examples}
+\end{figure}
+
+CIFAR 图像数据的 PCA 与 LDA 投影如图 \ref{fig:exp3_ext_cifar_projection} 所示。与 MNIST 相比，CIFAR 的二维投影中正确和错误样本混杂更明显，说明自然图像的类别结构很难仅由像素 PCA 特征展开。CIFAR-10 在 64 维 PCA 特征上的最近质心准确率为 26.72\%，CIFAR-100 为 11.13\%，明显低于低维数据和 MNIST。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/cifar10_pca_lda_projection.pdf}
+\caption{CIFAR-10}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/cifar100_pca_lda_projection.pdf}
+\caption{CIFAR-100}
+\end{subfigure}
+\caption{CIFAR 数据的 PCA/K-L 投影与 LDA 投影比较}
+\label{fig:exp3_ext_cifar_projection}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/cifar10_pca_examples.pdf}
+\caption{CIFAR-10}
+\end{subfigure}
+\begin{subfigure}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figures/experiment3_extended/cifar100_pca_examples.pdf}
+\caption{CIFAR-100}
+\end{subfigure}
+\caption{CIFAR 数据 PCA 特征分类的部分测试样本预测结果}
+\label{fig:exp3_ext_cifar_examples}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{实验三扩展数据集 K-L/PCA 特征提取结果}
+\label{tab:exp3_ext_summary}
+\input{../results/experiment3_extended/summary_table.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\textwidth]{figures/experiment3_extended/extended_accuracy_comparison.pdf}
+\caption{扩展数据集上 PC1、PCA 特征和 LDA 的分类准确率比较}
+\label{fig:exp3_ext_accuracy}
+\end{figure}
+
 \subsection{综合实验结果与分析总结}
 
 综合结果可以看出：
@@ -1101,42 +1489,135 @@ K-L/PCA 第一主成分分类在训练集上的准确率为 86.00\%，在 \textt
   \item 类均值差方向与 PCA 第一主成分方向接近，因此分类结果完全相同。这说明本数据集中“总体变化最大方向”和“男女均值分离方向”基本一致。
   \item Fisher 线性判别在 test2 上达到 90.33\%，略高于 PCA 和类均值差方向，因为 Fisher 同时考虑了类间分离和类内散度。
   \item 二维高斯 Bayes 在 test2 上为 89.33\%，与 PCA 方法接近，但它基于概率密度估计，分类边界可以是非线性的。
+  \item 扩展数据集表明，PC1 分类效果强烈依赖“最大方差方向是否与类别差异一致”。模拟二类高斯和男女数据中该条件基本满足，因此 PC1 效果较好；三类数据和图像数据中，仅使用 PC1 容易丢失重要判别信息。
+  \item 图像数据上，64 维 PCA 特征能明显优于单个主成分，但仍弱于使用类别信息的 LDA 或局部邻域方法。PCA 保留的是总体方差，保留下来的变化不一定都是类别相关变化。
 \end{itemize}
 
-K-L 变换适合作为降维和特征提取工具，但它本身不是专门为分类设计的。对于本实验的身高体重数据，PCA 主方向刚好接近判别方向，因此分类效果较好；在更复杂的数据中，最大方差方向可能来自光照、姿态、尺度等与类别无关的因素，此时仅靠 PCA 主方向分类可能不够理想，需要结合 Fisher、Bayes 或其他监督分类器。
+K-L 变换适合作为降维和特征提取工具，但它本身不是专门为分类设计的。对于身高体重、模拟二类高斯等数据，PCA 主方向刚好接近判别方向，因此分类效果较好；在 MNIST 和 CIFAR 等更复杂数据中，最大方差可能来自书写风格、背景、颜色、姿态等因素，此时仅靠 PCA 主方向分类不够理想。PCA 更适合作为特征压缩和可视化工具，若目标是提高分类性能，通常还需要结合 Fisher/LDA、Bayes、近邻方法或更有效的特征表达。
 
 \subsection{体会}
 
-通过本实验可以更清楚地区分无监督特征提取和监督判别分析。K-L/PCA 不使用类别标签，得到的是最能表示数据整体变化的方向；类均值差方向和 Fisher 方法使用类别标签，更关注样本是否容易被分开。本数据集上三种方向非常接近，说明身高和体重的主要变化本身就与性别差异相关。实验也说明，特征提取方法的效果不仅取决于算法，还取决于数据分布是否与分类目标一致。
+本实验让我更清楚地区分了无监督特征提取和监督判别分析。K-L/PCA 不使用类别标签，得到的是最能表示数据整体变化的方向；类均值差方向和 Fisher/LDA 使用类别标签，更关注样本是否容易被分开。男女身高体重数据中三种方向非常接近，说明身高和体重的主要变化本身就与性别差异相关。
+
+扩展数据集进一步说明，方差大并不一定等于分类信息多。MNIST 中单个主成分分类效果较弱，但多个主成分组合后能保留较多笔画结构；CIFAR 中即使累计方差较高，分类准确率仍然不高，因为许多方差来自背景、颜色和纹理变化，而不是类别本身。之后分析特征提取结果时，不能只看累计方差比例，还要结合类别分布、投影图和分类结果一起判断。
 \clearpage
 \section{实验四：基于 K-L 变换的应用实验}
 
-\subsection{姓名、学号、班级、题目}
+\subsection{模式识别理论知识}
 
-\begin{itemize}
-  \item 姓名：\studentname
-  \item 学号：\studentid
-  \item 班级：\studentclass
-  \item 题目：基于 K-L 变换的图像识别应用实验
-\end{itemize}
+\subsubsection{人脸图像的向量表示}
 
-\subsection{原理简述}
+本实验按照实验要求完成 K-L 变换在人脸识别中的应用。人脸识别与前面男女身高体重
+分类的主要区别在于特征维数更高：一张灰度人脸图像可以看成由像素组成的矩阵，
+将矩阵按行展开后即可得到一个高维向量。若图像大小为 $64\times64$，则每张人脸图像
+对应
+\[
+  \mathbf{x}=[x_1,x_2,\cdots,x_{4096}]^T,
+\]
+其中每个分量表示一个像素位置的灰度值。人脸图像具有较强的整体结构：眼睛、鼻子、
+嘴巴和脸部轮廓的位置相对稳定，因此适合用 K-L 变换从大量人脸样本中提取公共变化方向。
 
-本实验采用课程要求中的“其它数据库”方案，使用仓库已有飞机分类数据集完成基于 K-L 变换的图像识别。
-数据集位于 \texttt{experiment/plane\_dataset\_4\_1/}，包含 16 类飞机图像，
-训练集 2530 张，测试集 636 张。实验将图像灰度化并缩放为 $32\times 32$，
-再展开为 1024 维向量。
+直接在原始像素空间中进行分类存在两个问题。第一，维数较高，样本之间的距离容易受
+噪声、光照和表情变化影响；第二，相邻像素之间存在相关性，很多维度包含重复信息。
+因此需要先进行特征提取，把原始人脸图像转换为更紧凑的低维表示。
 
-图像样本维数较高，直接在原始像素空间中分类容易受到噪声、光照和背景影响。
-K-L 变换可以从训练图像中学习一组正交基，将图像投影到低维主成分空间：
+\subsubsection{K-L 变换与特征脸}
+
+K-L 变换在实际计算中通常表现为 PCA。设训练图像向量为
+$\mathbf{x}_1,\mathbf{x}_2,\cdots,\mathbf{x}_N$，先计算训练集均值
+\[
+  \boldsymbol{\mu}=\frac{1}{N}\sum_{i=1}^{N}\mathbf{x}_i,
+\]
+再对每个样本做中心化 $\tilde{\mathbf{x}}_i=\mathbf{x}_i-\boldsymbol{\mu}$。
+训练集协方差矩阵可写为
+\[
+  C=\frac{1}{N}\sum_{i=1}^{N}\tilde{\mathbf{x}}_i\tilde{\mathbf{x}}_i^T.
+\]
+对协方差矩阵进行特征值分解：
+\[
+  C\mathbf{u}_j=\lambda_j\mathbf{u}_j,\qquad
+  \lambda_1\geq \lambda_2\geq \cdots .
+\]
+其中 $\mathbf{u}_j$ 是第 $j$ 个主成分方向，$\lambda_j$ 表示该方向上的方差大小。
+取前 $k$ 个特征向量组成矩阵 $U_k=[\mathbf{u}_1,\cdots,\mathbf{u}_k]$，
+则图像在 K-L 特征空间中的表示为
 \[
   \mathbf{z}=U_k^T(\mathbf{x}-\boldsymbol{\mu}),
 \]
-其中 $\boldsymbol{\mu}$ 为训练图像均值，$U_k$ 为前 $k$ 个最大特征值对应的特征向量。
-在人脸识别中，该方法对应“特征脸”；在本实验中，相同思想用于提取“特征飞机”。
+维数从原来的 4096 降为 $k$。将每个主成分方向 $\mathbf{u}_j$ 重新排列成
+$64\times64$ 图像后，就得到“特征脸”。特征脸不是某一个人的真实照片，
+而是训练集中人脸灰度变化的基方向。不同人脸可以看成平均脸加上若干特征脸的线性组合：
+\[
+  \mathbf{x}\approx \boldsymbol{\mu}+U_k\mathbf{z}.
+\]
+因此，识别时不再比较原始图像，而是比较每张人脸在特征脸空间中的系数向量
+$\mathbf{z}$。
 
-本实验选取 $k=64$ 个主成分作为主要结果。64 维 PCA 特征累计解释方差比例为 89.88\%。
-在低维特征空间中，分别使用最近质心分类器和 1 近邻分类器完成飞机类别识别。
+\subsubsection{低维特征空间中的分类}
+
+完成 K-L 变换后，分类器不再直接处理原始图像，而是在 PCA 投影后的低维空间中工作。
+本实验采用最近质心、1 近邻和线性 SVM 三种分类器作为对比。
+
+最近质心分类器先计算每一类在 PCA 空间中的均值向量：
+\[
+  \mathbf{m}_c=\frac{1}{N_c}\sum_{y_i=c}\mathbf{z}_i ,
+\]
+然后把测试样本分到距离最近的类别：
+\[
+  \hat{y}=\arg\min_c \|\mathbf{z}-\mathbf{m}_c\|_2 .
+\]
+该方法参数少、计算快，但它默认每个人的人脸样本可以用一个中心表示。
+
+1 近邻分类器不显式估计类别分布，而是保存训练样本的 PCA 特征。对测试样本
+$\mathbf{z}$，寻找距离最近的训练样本：
+\[
+  i^\ast=\arg\min_i \|\mathbf{z}-\mathbf{z}_i\|_2,\qquad
+  \hat{y}=y_{i^\ast}.
+\]
+该方法能够保留训练样本的局部信息，但对噪声和维数选择比较敏感。
+
+线性 SVM 在特征脸空间中学习分类超平面。对多类人脸识别，程序采用一对多或一对一的
+多类扩展形式，由分类器内部完成。SVM 不只比较距离，还利用类别标签寻找具有间隔的
+判别边界，因此通常比单纯最近邻更稳定。
+
+\subsection{人脸数据集说明}
+
+实验使用 Olivetti Faces 人脸数据集。该数据集形式与 ORL/AT\&T 风格的人脸库接近，
+包含 40 个人，每人 10 张灰度人脸图像，共 400 张，图像大小为 $64\times64$。
+每个人的人脸图像包含轻微姿态、表情和光照变化。实验按人员划分训练集和测试集：
+每人前 6 张作为训练样本，后 4 张作为测试样本，因此训练集 240 张，测试集 160 张。
+这种划分保证每个身份都同时出现在训练集和测试集中，符合人脸识别中的闭集识别设置。
+
+\begin{table}[H]
+\centering
+\caption{Olivetti Faces 人脸数据集基本信息}
+\label{tab:exp4_face_dataset}
+\small
+\input{../results/experiment4_eigenfaces/dataset_table.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/experiment4_faces/face_samples.pdf}
+\caption{Olivetti Faces 数据集样本示例}
+\label{fig:exp4_face_samples}
+\end{figure}
+
+图~\ref{fig:exp4_face_samples} 展示了部分人脸样本。与飞机图像相比，人脸图像背景
+较简单、目标位置较统一，面部结构也更稳定，因此更适合作为 K-L 变换和特征脸方法的
+教学实验数据。
+
+\subsection{实验设置与程序实现}
+
+实验流程为：读取人脸数据，按身份构造训练集和测试集，将 $64\times64$ 图像展开为
+4096 维向量，对训练集进行标准化，再用 K-L/PCA 提取特征脸。测试图像使用训练集得到的
+均值、标准差和 PCA 投影矩阵进行同样变换，避免测试信息泄漏。
+
+主成分数分别取 $k=10,20,40,60,80,120,160$。其中 $k=120$ 作为主要展示设置，
+累计方差贡献率为 96.90\% 左右。分类器包括 Eigenfaces+最近质心、Eigenfaces+1NN
+和 Eigenfaces+SVM。实验程序位于 \texttt{scripts/experiment4\_eigenfaces.py}，
+数据划分、特征脸提取和分类评价核心实现见附录代码~\ref{lst:exp4-face-split}
+和~\ref{lst:exp4-face-classifier}。
 
 \subsection{程序框图}
 
@@ -1144,100 +1625,204 @@ K-L 变换可以从训练图像中学习一组正交基，将图像投影到低�
 \centering
 \begin{tikzpicture}[node distance=1.4cm, >=stealth]
   \tikzstyle{block}=[rectangle, draw, rounded corners, align=center, minimum width=5.2cm, minimum height=0.8cm]
-  \node[block] (load) {读取图像训练集和测试集};
-  \node[block, below of=load] (pre) {灰度化、缩放、向量化};
-  \node[block, below of=pre] (pca) {K-L/PCA 降维};
-  \node[block, below of=pca] (clf) {最近邻或传统分类器识别};
-  \node[block, below of=clf] (metric) {计算准确率、召回率、混淆矩阵};
-  \draw[->] (load) -- (pre);
+  \node[block] (load) {读取 Olivetti 人脸图像};
+  \node[block, below of=load] (split) {按每人 6/4 张划分训练集和测试集};
+  \node[block, below of=split] (pre) {图像向量化与标准化};
+  \node[block, below of=pre] (pca) {K-L/PCA 提取特征脸};
+  \node[block, below of=pca] (clf) {最近质心、1NN、SVM 识别};
+  \node[block, below of=clf] (metric) {计算准确率、混淆矩阵、预测样例};
+  \draw[->] (load) -- (split);
+  \draw[->] (split) -- (pre);
   \draw[->] (pre) -- (pca);
   \draw[->] (pca) -- (clf);
   \draw[->] (clf) -- (metric);
 \end{tikzpicture}
-\caption{基于 K-L 变换的图像识别流程}
+\caption{基于 K-L 变换的特征脸识别流程}
 \end{figure}
 
-\subsection{实验结果及分析总结}
+\subsection{实验步骤与结果分析}
+
+\subsubsection{平均脸与特征脸提取结果}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.76\textwidth]{figures/experiment4/sample_images.pdf}
-\caption{飞机分类数据集样本示例}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.76\textwidth]{figures/experiment4/pca_components.pdf}
-\caption{K-L/PCA 提取的前 10 个图像主成分}
+\includegraphics[width=0.28\textwidth]{figures/experiment4_faces/mean_face.pdf}
+\caption{训练集平均脸}
+\label{fig:exp4_mean_face}
 \end{figure}
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.72\textwidth]{figures/experiment4/accuracy_vs_components.pdf}
-\caption{不同 PCA 主成分数下的测试准确率}
+\includegraphics[width=0.82\textwidth]{figures/experiment4_faces/eigenfaces.pdf}
+\caption{K-L/PCA 提取的前 15 个特征脸}
+\label{fig:exp4_eigenfaces}
+\end{figure}
+
+图~\ref{fig:exp4_mean_face} 为训练样本的平均脸，可以看到人脸的大致轮廓、眼睛和嘴部
+位置。图~\ref{fig:exp4_eigenfaces} 为前 15 个特征脸。特征脸通常表现为正负灰度变化
+组成的面部模式，而不是某个人的真实照片。前几个特征脸主要描述脸部整体亮度、左右光照、
+头部轮廓和五官位置变化；后续特征脸包含更细的局部纹理。测试人脸被投影到这些特征脸
+方向后，就得到用于分类的低维系数。
+
+\subsubsection{特征脸数量与识别性能}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{figures/experiment4_faces/explained_variance.pdf}
+\caption{特征脸数量与累计方差贡献率}
+\label{fig:exp4_face_variance}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{figures/experiment4_faces/accuracy_vs_components.pdf}
+\caption{不同特征脸数量下的人脸识别准确率}
+\label{fig:exp4_face_accuracy_curve}
 \end{figure}
 
 \begin{table}[H]
 \centering
-\caption{图像识别实验结果记录表}
+\caption{不同特征脸数量下的人脸识别结果}
+\label{tab:exp4_face_component_results}
 \small
-\input{../results/experiment4_kl_image/summary_table.tex}
+\input{../results/experiment4_eigenfaces/component_table.tex}
+\end{table}
+
+图~\ref{fig:exp4_face_variance} 显示，前 10 个特征脸已经保留 66.49\% 的训练集方差，
+前 60 个特征脸保留 91.14\%，前 120 个特征脸保留 96.90\% 左右。人脸图像具有较强
+相关结构，因此 K-L 变换可以用远少于 4096 的维数表示主要变化。
+
+表~\ref{tab:exp4_face_component_results} 和图~\ref{fig:exp4_face_accuracy_curve}
+显示，特征脸数量对识别性能有明显影响。特征脸数量从 10 增加到 60 时，三种分类器
+总体上都有提升；继续增加到 120 后，SVM 测试准确率达到 96.25\%，最近质心达到
+94.38\%。1NN 在特征脸数量较多时反而下降，说明高维低样本情况下，距离分类器容易受到
+细小噪声维度影响。
+
+\begin{table}[H]
+\centering
+\caption{120 个特征脸下的人脸识别结果}
+\label{tab:exp4_face_summary}
+\small
+\input{../results/experiment4_eigenfaces/summary_table.tex}
+\end{table}
+
+\subsubsection{特征脸空间分布与混淆情况}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.72\textwidth]{figures/experiment4_faces/projection_correct_wrong.pdf}
+\caption{测试人脸在前两个特征脸系数维度上的预测分布}
+\label{fig:exp4_face_projection}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.78\textwidth]{figures/experiment4_faces/confusion_matrix.pdf}
+\caption{Eigenfaces+SVM 在人脸测试集上的归一化混淆矩阵}
+\label{fig:exp4_face_confusion}
+\end{figure}
+
+图~\ref{fig:exp4_face_projection} 只显示前两个特征脸系数，因此不同身份仍有重叠；
+但预测错误样本数量明显少于飞机补充实验。图~\ref{fig:exp4_face_confusion} 中大部分
+能量集中在对角线附近，说明多数人的测试图像被正确识别。少量错误通常发生在面部姿态、
+光照或表情差异较大的样本上。
+
+\subsubsection{预测样例分析}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.76\textwidth]{figures/experiment4_faces/prediction_examples.pdf}
+\caption{Eigenfaces+SVM 人脸预测正确与错误样例}
+\label{fig:exp4_face_prediction_examples}
+\end{figure}
+
+图~\ref{fig:exp4_face_prediction_examples} 给出了部分测试样本预测结果。绿色标题为
+识别正确样本，红色标题为识别错误样本。正确样本通常保持较典型的正面或近正面人脸结构；
+错误样本往往存在表情、头部角度或阴影变化，使其在特征脸空间中更接近其他人的训练样本。
+
+\subsection{补充实验：飞机图像数据集上的 K-L 变换}
+
+为比较 K-L 变换在不同图像任务中的表现，保留仓库中的飞机分类数据集作为补充实验。
+飞机图像数据集位于 \texttt{experiment/plane\_dataset\_4\_1/}，包含 16 类飞机，
+训练集 2530 张，测试集 636 张。实验将飞机图像灰度化并缩放为 $32\times32$，
+再展开为 1024 维向量，使用 PCA+最近质心和 PCA+1NN 分类器进行识别。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment4/sample_images.pdf}
+\caption{飞机分类补充数据集样本示例}
+\label{fig:exp4_plane_samples}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment4/pca_components.pdf}
+\caption{飞机图像补充实验中提取的前 10 个主成分}
+\label{fig:exp4_plane_components}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment4/accuracy_vs_components.pdf}
+\caption{飞机图像补充实验中不同主成分数下的测试准确率}
+\label{fig:exp4_plane_accuracy}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{飞机图像补充实验结果}
+\label{tab:exp4_plane_results}
+\small
+\input{../results/experiment4_kl_image/component_table.tex}
 \end{table}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.78\textwidth]{figures/experiment4/confusion_matrix.pdf}
-\caption{PCA+1NN 在飞机测试集上的归一化混淆矩阵}
+\caption{飞机图像补充实验 PCA+1NN 归一化混淆矩阵}
+\label{fig:exp4_plane_confusion}
 \end{figure}
 
-从实验结果看，K-L 变换能够有效压缩图像维数。原始灰度图像为 1024 维，
-使用 64 个主成分后降至 64 维，同时保留约 89.88\% 的训练集方差信息。
-这说明训练图像中存在明显的低维结构，PCA 能够提取主要外形、亮度和纹理变化。
+飞机补充实验中，64 个主成分保留约 89.88\% 的方差信息，但 PCA+1NN 测试准确率为
+53.93\%，最近质心分类器约为 19.97\%。与人脸数据相比，飞机图像背景复杂、目标姿态和
+尺度变化更大，类别数量也更多且样本不均衡。PCA 提取到的高方差方向中包含大量背景、
+亮度和拍摄角度变化，不一定都是区分类别的关键结构，因此识别率低于特征脸实验。
 
-在分类器比较方面，PCA+NearestCentroid 在 64 维下训练准确率为 20.47\%，
-测试准确率为 19.97\%。最近质心分类器只用每类均值表示类别，
-对同一类别内部姿态、尺度、背景差异较大的飞机图像不够灵活。
-PCA+1NN 在训练集上准确率为 100.00\%，测试集准确率为 53.93\%，明显优于最近质心方法。
-1NN 能够保留局部样本信息，对飞机图像这类类内变化较大的数据更合适。
+\subsection{实验结果综合分析}
 
-从主成分数变化曲线可以看出，PCA+1NN 在 8、16、32、64、128 维下的测试准确率分别约为
-48.58\%、52.36\%、54.09\%、53.93\%、52.99\%。主成分数从 8 增加到 32 时准确率提升，
-说明更多主成分补充了有效识别信息；但继续增加到 64 或 128 后提升不明显，
-甚至略有下降，说明后续主成分可能包含更多背景和噪声。
+人脸主实验中，120 个特征脸将原始 4096 维像素压缩到 120 维，累计方差贡献率约为
+96.90\%。在该设置下，最近质心、1NN 和 SVM 的测试准确率分别为 94.38\%、78.12\%
+和 96.25\%。SVM 准确率最高，说明在特征脸空间中进一步学习判别边界，比单纯距离比较
+更稳定。最近质心也取得较好结果，是因为 Olivetti 人脸图像姿态较统一，每个人的样本
+在特征脸空间中具有较紧凑分布。
 
-混淆矩阵显示，不同类别之间仍存在较多混淆。这与飞机图像的姿态、拍摄距离、
-背景复杂度和类别不平衡有关。例如部分战斗机或运输机在低分辨率灰度图下外形相似，
-仅依靠 PCA 像素特征和简单 1NN 分类器难以完全区分。
-因此，K-L 变换适合作为图像识别的基础特征提取方法，
-但若要进一步提升准确率，还需要结合更强的图像特征、数据增强或卷积神经网络方法。
+飞机补充实验与人脸实验形成对比。两者都使用 K-L/PCA 降维，但人脸图像对齐程度高、
+结构稳定，PCA 保留的主要方差与身份差异有较强关系；飞机图像包含更多背景、尺度和姿态
+干扰，高方差方向不一定等于高判别方向。该对比说明，K-L 变换适合结构较稳定、样本
+对齐较好的图像识别问题；对于复杂自然图像，通常还需要更强的局部特征或监督学习模型。
 
 \subsection{体会}
 
-通过本实验可以看到，K-L 变换不仅适用于二维身高体重数据，也可以扩展到高维图像识别问题。
-图像向量维数很高，而 PCA 可以用较少主成分保留主要变化信息，从而降低计算量并去除部分冗余。
-这与“特征脸”方法的思想一致：先从训练图像中学习公共变化方向，再在低维特征空间中完成识别。
+特征脸实验让我更容易理解 K-L 变换为什么能够用于图像识别。原始像素维数很高，
+但人脸之间存在共同结构，很多变化可以由少数主成分表示。把主成分重新显示成图像后，
+“特征脸”把抽象的协方差特征向量变得直观：它们描述的是人脸中最常见的明暗、轮廓和
+五官位置变化。
 
-同时，本实验也说明，降维并不等于完整解决分类问题。PCA 是无监督方法，
-它优先保留总体方差，而这些方差可能来自背景、光照、姿态等与类别无关的因素。
-因此 PCA+1NN 能取得一定识别效果，但准确率仍受限。相比之下，最近质心方法过于简单，
-无法描述复杂类别分布。后续若要提高飞机图像分类性能，可以考虑监督降维、
-方向梯度直方图、SIFT/ORB 特征，或使用卷积神经网络进行端到端特征学习。
+同时，补充飞机实验也提醒我不能只看累计方差贡献率。人脸数据上 120 个特征脸能得到
+较高识别率，是因为数据本身比较规整；飞机数据即使保留较多方差，分类准确率仍然有限。
+后续处理图像识别问题时，除了降维，还要考虑目标是否对齐、背景是否干净、类别差异是否
+能被当前特征表达出来。K-L 变换适合作为基础特征提取方法，但复杂图像任务还需要结合
+更有判别性的特征和分类模型。
 
 \clearpage
 \section{实验五：聚类分析实验}
 
-\subsection{姓名、学号、班级、题目}
-
-\begin{itemize}
-  \item 姓名：\studentname
-  \item 学号：\studentid
-  \item 班级：\studentclass
-  \item 题目：对数据进行聚类分析的实验
-\end{itemize}
-
 \subsection{模式识别理论知识}
 
-前面几个实验主要是监督分类：训练样本带有性别标签，分类器利用标签学习判别规则。聚类分析属于无监督学习，算法只看到样本的特征向量，不使用真实性别标签。聚类的目标是根据样本之间的相似性自动形成若干组，再观察这些组是否与真实类别具有对应关系。
+前面几个实验主要是监督分类：训练样本带有类别标签，分类器利用标签学习判别规则。
+聚类分析属于无监督学习，算法只使用样本特征，不在训练过程中使用真实性别标签。
+聚类的目标是根据样本之间的相似性自动形成若干组，再通过真实标签评价这些组是否具有
+明确的类别含义。本实验使用身高和体重两个特征观察男女样本在二维空间中的自然分组结构。
 
 本实验使用二维特征
 \[
@@ -1251,7 +1836,8 @@ z_{ij}=\frac{x_{ij}-\mu_j}{\sigma_j}.
 
 \subsubsection{C 均值聚类}
 
-C 均值聚类也常称为 $k$-means 聚类。给定聚类数 $C$，算法希望找到 $C$ 个聚类中心，使样本到所属中心的平方距离总和最小。目标函数为
+C 均值聚类也常称为 $k$-means 聚类。给定聚类数 $C$，算法希望找到 $C$ 个聚类中心，
+使样本到所属中心的平方距离总和最小。目标函数为
 \[
 J=\sum_{j=1}^{C}\sum_{\boldsymbol{x}_i\in \omega_j}\|\boldsymbol{x}_i-\boldsymbol{\mu}_j\|^2.
 \]
@@ -1262,23 +1848,29 @@ J=\sum_{j=1}^{C}\sum_{\boldsymbol{x}_i\in \omega_j}\|\boldsymbol{x}_i-\boldsymbo
 \[
 \boldsymbol{\mu}_j=\frac{1}{N_j}\sum_{\boldsymbol{x}_i\in \omega_j}\boldsymbol{x}_i.
 \]
-第一步把样本分配给最近中心，第二步用簇内样本均值更新中心，直到中心变化很小或达到最大迭代次数。
+第一步把样本分配给最近中心，第二步用簇内样本均值更新中心，直到中心变化很小或达到
+最大迭代次数。由于目标函数是非凸的，随机初始中心可能影响最终结果。因此本实验会对
+$C=2$ 重复不同初值，观察 SSE 和性别匹配率的波动。
 
-C 均值的优点是简单、快速、易实现；缺点是需要预先指定类别数 $C$，对初始中心和特征尺度敏感，并且倾向于发现近似球形的簇。
+C 均值的优点是简单、快速、易实现；缺点是需要预先指定类别数 $C$，对初始中心和特征
+尺度敏感，并且倾向于发现近似球形的簇。
 
 \subsubsection{聚类指标}
 
 为了分析聚类效果，本实验使用以下指标：
 \begin{itemize}
-  \item SSE：类内平方误差和，即 C 均值目标函数。SSE 越小表示簇内越紧凑，但它会随着聚类数增加而自然下降。
+  \item SSE：类内平方误差和，即 C 均值目标函数。SSE 越小表示簇内越紧凑，但它会随着聚类数增加而自然下降，不能单独用于确定类别数。
   \item 轮廓系数：综合衡量簇内紧凑性和簇间分离性，取值越大通常说明聚类结构越清晰。
   \item ARI：调整兰德指数，用真实标签与聚类结果比较。ARI 越大表示聚类结果越接近真实类别。
-  \item 性别匹配率：由于聚类编号本身没有性别含义，将两个簇与男女标签做最佳匹配后计算准确率，仅用于解释聚类结果与性别标签的对应程度。
+  \item 性别匹配率：聚类编号本身没有性别含义，将两个簇与男女标签做最佳匹配后计算准确率，仅用于解释聚类结果与性别标签的对应程度。
 \end{itemize}
 
 \subsubsection{分级聚类}
 
-分级聚类通过逐步合并或分裂样本形成层次结构。本实验采用凝聚式 Ward 分级聚类：初始时每个样本单独成簇，然后不断合并使类内平方误差增加最小的两个簇。Ward 方法不需要随机初始中心，可以用树状图观察样本逐层合并的过程，但当样本数量较大时计算量较高。
+分级聚类通过逐步合并或分裂样本形成层次结构。本实验采用凝聚式 Ward 分级聚类：
+初始时每个样本单独成簇，然后不断合并使类内平方误差增加最小的两个簇。Ward 方法不需要
+随机初始中心，可以用树状图观察样本逐层合并的过程；缺点是计算量较大，并且一旦完成
+某次合并，后续不能再撤销。
 
 \subsection{实际数据集与实验设置}
 
@@ -1287,6 +1879,14 @@ C 均值的优点是简单、快速、易实现；缺点是需要预先指定类
   \item 训练集：\texttt{FEMALE.TXT} 与 \texttt{MALE.TXT} 合并，共 100 个样本，其中女生 50 个、男生 50 个。
   \item 合并数据：训练集再加入 \texttt{test2.txt}，共 400 个样本。由于 \texttt{test2.txt} 中有 50 个女生、250 个男生，因此合并后类别比例变为女生 100 个、男生 300 个。
 \end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{实验五使用的数据集统计}
+\label{tab:exp5_dataset}
+\small
+\input{../results/experiment5_clustering/dataset_table.tex}
+\end{table}
 
 实验步骤如下：
 \begin{itemize}
@@ -1318,8 +1918,1109 @@ C 均值的优点是简单、快速、易实现；缺点是需要预先指定类
 \label{fig:exp5_flow}
 \end{figure}
 
-实验五程序位于 \texttt{scripts/experiment5\_clustering.py}。C 均值部分为独立编程实现，核心代码如下：
-\begin{lstlisting}
+实验五程序位于 \texttt{scripts/experiment5\_clustering.py}。C 均值部分为独立编程实现，
+相关实现见附录代码~\ref{lst:exp5-cmeans}。聚类指标计算与不同类别数实验见附录代码
+~\ref{lst:exp5-k-range}。Ward 分级聚类使用已有程序完成，相关实现见附录代码
+~\ref{lst:exp5-ward}。
+
+\subsection{实验步骤与结果分析}
+
+\subsubsection{步骤一：训练集上 C=2 的 C 均值聚类与初始值影响}
+
+首先将 \texttt{FEMALE.TXT} 和 \texttt{MALE.TXT} 合并，使用身高和体重两个特征，设 $C=2$ 进行 C 均值聚类。结果如图 \ref{fig:exp5_cmeans_train} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_train_2clusters.pdf}
+\caption{训练集 C 均值聚类结果，$C=2$}
+\label{fig:exp5_cmeans_train}
+\end{figure}
+
+图中颜色表示聚类编号，圆点和三角形表示真实性别。聚类结果大致形成“较矮较轻”和
+“较高较重”两个簇，与男女样本的统计差异基本一致。虽然聚类算法没有使用性别标签，
+但聚类结果与性别标签具有较强对应关系。
+
+\begin{table}[H]
+\centering
+\caption{训练集 C 均值聚类与真实性别的对应关系}
+\label{tab:exp5_cmeans_gender}
+\small
+\input{../results/experiment5_clustering/cmeans_train_gender_table.tex}
+\end{table}
+
+表~\ref{tab:exp5_cmeans_gender} 显示，50 个女生中有 47 个落入“女生簇”，50 个男生中
+有 38 个落入“男生簇”，性别匹配率为 85.00\%。错误样本主要集中在身高体重接近两类
+交界的位置，说明无监督聚类可以发现数据几何结构，但不能完全等同于真实性别分类。
+
+为考察初始中心影响，对 $C=2$ 使用 10 个不同随机种子重复实验，结果如图 \ref{fig:exp5_init} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/init_variation.pdf}
+\caption{不同初始中心对 C 均值聚类结果的影响}
+\label{fig:exp5_init}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{训练集 C 均值不同初始值实验结果}
+\label{tab:exp5_init}
+\small
+\input{../results/experiment5_clustering/init_table.tex}
+\end{table}
+
+不同初始值下 SSE 在 80.3193 到 80.3950 之间变化，性别匹配率在 85.00\% 到 87.00\%
+之间变化。说明该数据集聚类结构较稳定，但边界附近样本仍可能因初始中心不同而改变归属。
+实际使用 C 均值时，应多次初始化并选择 SSE 较小、轮廓系数较高的结果。
+
+\subsubsection{步骤二：不同类别数下的聚类指标}
+
+在训练集上分别设置 $C=2,3,4,5$，记录 SSE 和轮廓系数，如图 \ref{fig:exp5_k_train} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_k_metrics_train.pdf}
+\caption{训练集上不同类别数的 C 均值聚类指标}
+\label{fig:exp5_k_train}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{训练集不同类别数下的 C 均值聚类指标}
+\label{tab:exp5_k_train}
+\small
+\input{../results/experiment5_clustering/k_metrics_train_table.tex}
+\end{table}
+
+训练集上 $C=2,3,4,5$ 的 SSE 分别为 80.3950、52.4481、42.1838、34.8358。
+SSE 随类别数增加单调下降，这是因为更多中心必然能降低类内平方误差。但轮廓系数分别为
+0.5108、0.4333、0.3891、0.3660，随类别数增加下降。$C=2$ 的轮廓系数最高，且与男女
+两类的实际标签结构一致，因此训练集上合理类别数更倾向于 2。
+
+\subsubsection{步骤三：Ward 分级聚类}
+
+对训练集使用 Ward 分级聚类，树状图如图 \ref{fig:exp5_dendrogram} 所示，取两类后的二维聚类结果如图 \ref{fig:exp5_hier_train} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\textwidth]{figures/experiment5/hierarchical_dendrogram_train.pdf}
+\caption{训练集 Ward 分级聚类树状图}
+\label{fig:exp5_dendrogram}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/hierarchical_train_2clusters.pdf}
+\caption{训练集 Ward 分级聚类结果，$C=2$}
+\label{fig:exp5_hier_train}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{训练集 Ward 分级聚类与真实性别的对应关系}
+\label{tab:exp5_ward_gender}
+\small
+\input{../results/experiment5_clustering/ward_train_gender_table.tex}
+\end{table}
+
+Ward 分级聚类在训练集上取两类时，轮廓系数为 0.5049，ARI 为 0.3789，性别匹配率为
+81.00\%。其性别匹配率略低于 C 均值，但分级聚类的优势在于可以通过树状图观察样本逐层
+合并的过程，不依赖随机初始中心。树状图中后期的大距离合并说明数据确实存在较明显的
+两大分支结构。
+
+\subsubsection{步骤四：加入 test2 后重复实验}
+
+最后将训练集与 \texttt{test2.txt} 合并，共 400 个样本，其中男生比例明显升高。对合并数据重复 $C=2$ 的 C 均值聚类，结果如图 \ref{fig:exp5_cmeans_combined} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_combined_2clusters.pdf}
+\caption{训练集与 test2 合并后的 C 均值聚类结果，$C=2$}
+\label{fig:exp5_cmeans_combined}
+\end{figure}
+
+合并数据上不同类别数的指标如图 \ref{fig:exp5_k_combined} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_k_metrics_combined.pdf}
+\caption{训练集与 test2 合并后不同类别数的 C 均值聚类指标}
+\label{fig:exp5_k_combined}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{训练集与 test2 合并后不同类别数下的 C 均值聚类指标}
+\label{tab:exp5_k_combined}
+\small
+\input{../results/experiment5_clustering/k_metrics_combined_table.tex}
+\end{table}
+
+对合并数据使用 Ward 分级聚类并取两类，结果如图 \ref{fig:exp5_hier_combined} 所示。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\textwidth]{figures/experiment5/hierarchical_combined_2clusters.pdf}
+\caption{训练集与 test2 合并后的 Ward 分级聚类结果，$C=2$}
+\label{fig:exp5_hier_combined}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{合并数据 C 均值聚类与真实性别的对应关系}
+\label{tab:exp5_cmeans_combined_gender}
+\small
+\input{../results/experiment5_clustering/cmeans_combined_gender_table.tex}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{合并数据 Ward 分级聚类与真实性别的对应关系}
+\label{tab:exp5_ward_combined_gender}
+\small
+\input{../results/experiment5_clustering/ward_combined_gender_table.tex}
+\end{table}
+
+合并数据中 C 均值 $C=2$ 的轮廓系数为 0.4850，ARI 为 0.4693，性别匹配率为 84.50\%；
+Ward 分级聚类的轮廓系数为 0.4739，性别匹配率为 82.50\%。与训练集相比，合并数据的
+轮廓系数略有下降，说明新增样本增加了类内变化和边界重叠；但 $C=2$ 仍然具有最高轮廓
+系数，合理类别数仍可认为是 2。
+
+\begin{table}[H]
+\centering
+\caption{实验五聚类结果汇总}
+\label{tab:exp5_summary}
+\small
+\input{../results/experiment5_clustering/summary_table.tex}
+\end{table}
+
+\subsection{综合实验结果与分析总结}
+
+表~\ref{tab:exp5_summary} 汇总了主要实验结果。C 均值在训练集上取 $C=2$ 时性别匹配率
+为 85.00\%，说明身高体重空间中存在与性别相关的自然聚类结构。不同初始中心会造成少量
+边界样本变化，但 SSE 和性别匹配率波动较小，说明该数据集上的 C 均值结果较稳定。
+
+类别数实验中，SSE 随 $C$ 增大持续下降，但轮廓系数从 $C=2$ 开始下降。这说明单看 SSE
+会倾向于选择更多簇，而结合轮廓系数和真实任务背景，$C=2$ 更能反映男女身高体重数据的
+主要结构。Ward 分级聚类不需要随机初始化，能够展示层次关系，但本数据集上性别匹配率
+略低于 C 均值。加入 \texttt{test2.txt} 后，样本量增大且类别比例变为男生占多数，
+聚类结构仍以两类为主，但边界重叠更加明显。
+
+聚类结果与前面监督分类实验相互印证：身高和体重确实具有性别区分信息，但男女样本在
+边界区域存在重叠，因此无监督聚类无法完全恢复真实性别标签。聚类算法发现的是数据几何
+结构，而不是语义标签本身。
+
+\subsection{体会}
+
+通过本实验可以体会到，聚类与分类的目标不同。分类器利用标签学习判别边界，而聚类只根据距离和分布自动分组。即使聚类结果与性别标签较一致，也只能说明特征空间中存在相应结构，不能说明聚类算法真正理解了“性别”这个类别含义。
+
+C 均值算法实现简单、效率高，适合低维连续特征；但它对类别数、初始中心和标准化处理敏感。分级聚类能够展示更丰富的层次关系，适合观察样本合并过程。实验中两种方法都支持 $C=2$ 是较合理类别数，这与男女数据集的真实类别数一致，也说明身高和体重是较有效的聚类特征。
+
+\clearpage
+\section{补充实验一：基于 DT-ProtoYOLO 的开集目标检测}
+
+\subsection{模式识别理论知识}
+
+\subsubsection{闭集识别与开集识别}
+
+传统目标检测通常采用闭集假设：训练集和测试集类别集合相同，模型只需要在已知类别之间进行分类。
+在实际环境中，测试图像中可能出现训练阶段没有见过的类别。若闭集检测器仍然强制把未知目标分到
+某个已知类，就会产生开放空间风险。开集目标检测要求模型既能检测已知类目标，也能把未知类目标
+识别为 unknown，而不是错误地归入某个已知类。
+
+设检测框对应的类别置信度为 $p(c_i|x)$，闭集检测器通常取
+\begin{equation}
+  \hat{c}=\arg\max_i p(c_i|x).
+\end{equation}
+开集检测还需要增加拒识机制。若一个候选框虽然具有目标外观，但与所有已知类别都不够匹配，
+则应输出 unknown。这样，分类决策不再只是“选哪一类”，还包括“是否属于已知类”。
+
+\subsubsection{原型表示}
+
+DT-ProtoYOLO 在检测头中加入特征投影分支，将候选目标的局部特征映射为原型空间中的向量
+$z\in\mathbb{R}^{128}$。每个已知类别维护一个可学习原型 $p_i$。对于预测类别
+$\hat{c}$，计算目标特征与该类别原型之间的距离
+\begin{equation}
+  d=\|z-p_{\hat{c}}\|_2 .
+\end{equation}
+若样本确实属于已知类，则其投影特征应靠近对应类别原型；若样本是未知类，即使分类分支给出
+较高置信度，它与已知类原型的距离也可能较大。
+
+原型正则化由吸引项和排斥项组成。吸引项使同类样本靠近本类原型：
+\begin{equation}
+  L_{\mathrm{attr}}=\|z-p_y\|_2^2 .
+\end{equation}
+排斥项使样本远离非目标类别原型，可写为
+\begin{equation}
+  L_{\mathrm{rep}}=\sum_{j\ne y}\max(0,m-\|z-p_j\|_2)^2 ,
+\end{equation}
+其中 $m$ 是间隔参数。总的原型损失可表示为
+\begin{equation}
+  L_{\mathrm{proto}}=\lambda_{\mathrm{attr}}L_{\mathrm{attr}}
+  +\lambda_{\mathrm{rep}}L_{\mathrm{rep}}
+  +\lambda_{\mathrm{cls}}L_{\mathrm{proto\_cls}} .
+\end{equation}
+
+\subsubsection{双线性阈值判别}
+
+本实验中的开集决策同时使用分类置信度和原型距离。设
+\begin{equation}
+  s=\max_i p(c_i|x), \qquad d=\|z-p_{\hat{c}}\|_2 .
+\end{equation}
+双线性阈值规则为
+\begin{equation}
+\begin{cases}
+\mathrm{known}, & s\ge \alpha \ \mathrm{and}\ d\le \delta,\\
+\mathrm{unknown}, & \beta\le s<\alpha \ \mathrm{or}\ d>\delta,\\
+\mathrm{background}, & s<\beta.
+\end{cases}
+\end{equation}
+其中 $\alpha$ 控制已知类确认阈值，$\beta$ 控制目标候选与背景的分界，$\delta$ 控制原型空间中
+已知类可接受的距离范围。相比只看 softmax 置信度，加入原型距离后可以降低未知目标被误判为
+已知类的概率。
+
+训练阶段还在潜在未知区间 $\beta \le s \le \alpha$ 内引入不确定性最大化约束。设类别概率分布为
+$p=(p_1,p_2,\ldots,p_K)$，不确定性损失写为
+\begin{equation}
+  L_{\mathrm{unc}}=-H(p)=\sum_{i=1}^{K}p_i\log p_i .
+\end{equation}
+最小化该损失等价于增大预测熵，使处于灰色区间的候选框不被强行压到某个已知类别上。模型总损失
+可概括为
+\begin{equation}
+  L_{\mathrm{total}}
+  =\lambda_1L_{\mathrm{box}}+\lambda_2L_{\mathrm{dfl}}
+  +\mathbb{I}(s>\alpha)\lambda_3L_{\mathrm{cls}}
+  +\mathbb{I}(\beta\le s\le\alpha)\lambda_4L_{\mathrm{unc}}
+  +\lambda_5(L_{\mathrm{attr}}+L_{\mathrm{rep}}).
+\end{equation}
+其中检测损失保证定位和已知类分类能力，不确定性损失控制概率层面的过度自信，原型损失控制特征
+空间中的开放空间风险。
+
+\subsection{数据集与实验设置}
+
+补充实验一使用仓库 \texttt{yolov11\_osod} 中的 VOC 开集检测设置。数据集来源为
+PASCAL VOC 2007，训练时只使用已知类别，评估时保留未知类别用于测试开集能力。仓库文档中给出
+的设置为：VOC 20 类中编号 $0\sim14$ 作为已知类，编号 $15\sim19$ 作为未知类；训练标签生成
+已知类子集，验证集保留完整 20 类标签，以便统计 unknown 发现情况和误检情况。
+
+\begin{table}[H]
+\centering
+\caption{补充实验一主要模块与设置}
+\label{tab:supp_osod_components}
+\footnotesize
+\input{../results/supplemental/osod_components_table.tex}
+\end{table}
+
+模型采用 YOLO11n 作为检测主干，在检测头中加入 128 维投影特征和可学习类别原型。主要超参数为
+$\alpha=0.37$、$\beta=0.10$、$\delta=16.5$，原型损失权重采用
+$\lambda_{\mathrm{proto}}=0.05$，不确定性损失权重采用
+$\lambda_{\mathrm{unc}}=0.01$。训练流程分为闭集基线训练、原型初始化、DT-ProtoYOLO 训练、
+阈值校准和开集评估五个阶段。
+
+论文实验环境为 Ubuntu 20.04，单张 NVIDIA RTX 4060 Laptop GPU，深度学习框架为 PyTorch。
+训练时输入图像统一缩放为 $640\times640$，端到端训练 100 个 epoch，batch size 为 12。
+已知类训练结束后，在完整 VOC 20 类验证集上统计闭集基线与 DT-ProtoYOLO 的开集性能。
+
+\subsection{方法设计与程序框图}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.98\textwidth]{../pic/overall.png}
+\caption{DT-ProtoYOLO 总体架构图}
+\label{fig:supp_osod_flow}
+\end{figure}
+
+如图~\ref{fig:supp_osod_flow} 所示，DT-ProtoYOLO 保留 YOLO11 的 Backbone 和 Neck，
+重点重构检测头。检测头包含三个分支：Box Branch 负责边界框回归，Cls Branch 负责类别置信度，
+Feature Projection Branch 将候选框特征映射到 $D$ 维原型空间。训练阶段，已知高置信样本进入
+BCE 分类损失，潜在未知样本进入不确定性损失，投影特征同时受到原型吸引和排斥约束。推理阶段，
+候选框必须同时满足分类置信度和原型距离两个条件，才能被确认为已知类；若任一条件不满足，则进入
+unknown 拒识分支。
+
+\subsection{实验结果与分析}
+
+\begin{table}[H]
+\centering
+\caption{补充实验一开集检测评价指标}
+\label{tab:supp_osod_metrics}
+\small
+\input{../results/supplemental/osod_metrics_table.tex}
+\end{table}
+
+论文实验以 YOLO11n 闭集检测器作为 Baseline，并与加入双线性阈值和原型正则化后的
+DT-ProtoYOLO 进行比较。主要结果如表~\ref{tab:supp_osod_paper_results} 和
+图~\ref{fig:supp_osod_metric_bar} 所示。
+
+\begin{table}[H]
+\centering
+\caption{补充实验一论文定量结果}
+\label{tab:supp_osod_paper_results}
+\footnotesize
+\input{../results/supplemental/osod_paper_results_table.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../pic/fig2.png}
+  \caption{开集性能对比}
+  \label{fig:supp_osod_metric_bar}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../pic/fig3.png}
+  \caption{开集测试混淆矩阵}
+  \label{fig:supp_osod_confusion}
+\end{subfigure}
+\caption{DT-ProtoYOLO 定量结果可视化}
+\label{fig:supp_osod_quantitative}
+\end{figure}
+
+Baseline 的 Known Recall 为 84.2\%，DT-ProtoYOLO 为 80.1\%，下降 4.1 个百分点。该下降来自
+更保守的拒识策略：部分遮挡、光照差或外观不典型的已知类目标会因为原型距离超过阈值而被拒识。
+不过，DT-ProtoYOLO 仍保留了基线约 95.1\% 的相对已知类召回能力。相比之下，A-OSE 从 69 降到
+51，下降 26.1\%，说明未知目标被错误归入已知类的情况明显减少。Unknown Discovery 从 0 增加到
+70，说明闭集基线完全没有 unknown 输出能力，而 DT-ProtoYOLO 能够把一部分新类别目标显式标记为
+未知目标。
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.84\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../pic/fig4.jpg}
+  \caption{Semantic Novelty: sheep 场景}
+\end{subfigure}
+\vspace{0.25em}
+
+\begin{subfigure}{0.84\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../pic/fig5.jpg}
+  \caption{Semantic Confusion: collie 场景}
+\end{subfigure}
+\vspace{0.25em}
+
+\begin{subfigure}{0.84\textwidth}
+  \centering
+  \includegraphics[width=\textwidth]{../pic/fig6.jpg}
+  \caption{Small Object Discovery: Chihuahua 场景}
+\end{subfigure}
+\caption{DT-ProtoYOLO 开集检测定性示例}
+\label{fig:supp_osod_qualitative}
+\end{figure}
+
+图~\ref{fig:supp_osod_confusion} 中的混淆矩阵显示，真实 unknown 样本中有 56\% 被正确分配到
+UNKNOWN 类，而 Baseline 对 unknown 的发现率为 0。矩阵最后一列也反映出部分已知类被拒识为
+unknown，例如 chair 和 dog 类中存在一定比例的误拒识。这说明开集检测存在安全性和稳定性的权衡：
+模型越谨慎，未知类误判为已知类的风险越低，但一部分边界已知类样本也可能被拒识。
+
+定性检测结果进一步说明了双线性阈值和原型距离的作用。在 sheep 场景中，Baseline 将未知类别错误
+识别为 bird；在 collie 场景中，Baseline 受外观相似性影响，将目标识别为 horse；DT-ProtoYOLO
+虽然分类分支可能受到纹理或姿态干扰，但原型距离提供了第二道判别条件，使这些样本被重新标记为
+UNKNOWN。在小目标 Chihuahua 场景中，低阈值 $\beta=0.1$ 保留了不确定候选框，再由原型距离判定
+其偏离已知 dog 原型，从而把原本可能被漏检的风险目标转化为 unknown 发现。
+
+从方法结构上分析，双线性阈值主要影响推理阶段的概率拒识边界。若 $\alpha$ 过高，已知类目标可能
+被拒识为 unknown，Known Recall 会下降；若 $\alpha$ 过低，未知目标更容易被当作已知类，
+A-OSE 会升高。$\beta$ 影响低置信候选是否直接作为背景过滤，$\delta$ 则控制原型空间的拒识边界。
+原型正则化主要影响特征空间结构：类内特征越紧凑，距离阈值越稳定；类间原型间隔越大，未知目标
+越容易与已知类区分。
+
+与课程中的 Bayes 分类、Fisher 判别和 K-L 变换相比，开集目标检测面对的是更复杂的图像空间。
+课程实验中分类器通常在固定类别集合中工作，而本实验增加了 unknown 决策，评价目标也从单纯准确率
+扩展到 Known Recall、A-OSE 和 Unknown Discovery。它对应模式识别中的拒识分类、距离度量学习和
+开放空间风险控制问题。
+
+\clearpage
+\section{补充实验二：视觉分类器奖励引导的无人机数字轨迹}
+
+\subsection{模式识别理论知识}
+
+\subsubsection{视觉分类器作为模式评价函数}
+
+该课外实验来自仓库 \texttt{Drone-Digit-RL}。任务目标不是直接分类静态图像，而是让无人机在二维
+平面上飞出类似数字的轨迹。环境把一段连续运动轨迹渲染成 $28\times28$ 灰度图，再交给 CNN
+数字分类器评价。分类器输出 11 类概率：数字 $0\sim9$ 和 OOD/乱码类。若目标数字为 $k$，
+则视觉评价可以写为
+\begin{equation}
+  p=\mathrm{CNN}(I_{\tau}),\qquad p_k=p(y=k|I_{\tau}),
+\end{equation}
+其中 $I_{\tau}$ 是轨迹 $\tau$ 渲染得到的图像。为了避免轨迹虽然得到某个数字概率但整体不可读，
+引入 OOD 概率 $p_{\mathrm{ood}}$ 和置信间隔
+\begin{equation}
+  \mathrm{margin}=p_k-\max_{j\ne k,\ j\ne \mathrm{ood}}p_j .
+\end{equation}
+奖励函数可以由目标数字概率、混淆类别概率和 OOD 概率共同构成。这样，CNN 分类器相当于一个
+模式识别评分器，把连续控制问题中的轨迹质量转化为可优化的数值信号。
+
+\subsubsection{CNN 数字识别的理论基础}
+
+卷积神经网络属于监督学习分类器，其输入是图像矩阵，输出是各类别的判别得分或后验概率估计。
+与传统 Bayes 分类器需要显式估计 $p(x|\omega_i)$ 不同，CNN 直接从标注样本中学习从图像到类别的
+非线性映射
+\begin{equation}
+  f_{\theta}: I \rightarrow z,\qquad
+  z=[z_0,z_1,\ldots,z_{10}]^T ,
+\end{equation}
+其中 $I$ 为轨迹渲染图像，$z_i$ 为第 $i$ 类的分类得分，$\theta$ 为卷积核和全连接层权值。最后一层
+通常使用 Softmax 将得分转化为概率形式：
+\begin{equation}
+  p(y=i|I)=\frac{\exp(z_i)}{\sum_{j=0}^{10}\exp(z_j)} .
+\end{equation}
+因此，CNN 的输出可以看作对后验概率 $P(\omega_i|x)$ 的近似估计，分类时取概率最大的类别：
+\begin{equation}
+  \hat{y}=\arg\max_i p(y=i|I).
+\end{equation}
+
+CNN 适合处理轨迹图像，主要原因在于卷积层具有局部感受野和权值共享。局部感受野使卷积核只关注
+图像中的局部笔画结构，例如短直线、弯折、交叉点和闭环边缘；权值共享使同一个卷积核可以在整幅图像
+不同位置检测相同模式，减少参数数量并增强平移泛化能力。对于数字轨迹来说，数字 6、8、9 等类别的
+区分往往依赖闭合区域、上下笔画连接和交叉位置，这些结构都可以由多层卷积逐步组合得到。
+
+池化层用于对局部区域进行下采样，保留主要响应并降低小幅位置变化带来的影响。经过若干卷积和池化后，
+图像被表示为高层特征向量；全连接层再根据这些特征完成类别判别。若训练样本为 $(I_n,y_n)$，
+模型参数通常通过最小化交叉熵损失学习：
+\begin{equation}
+  L_{\mathrm{cls}}=-\frac{1}{N}\sum_{n=1}^{N}\sum_{i=0}^{10}
+  \mathbb{I}(y_n=i)\log p(y=i|I_n).
+\end{equation}
+该损失会提高真实类别的预测概率，降低其他类别概率，使网络逐渐学习到数字图像中具有判别性的笔画
+模式。加入 OOD/乱码类后，分类器还具备一定拒识能力：当轨迹不像任何规范数字时，理想输出应偏向
+OOD 类，而不是强行归入 $0\sim9$ 中的某一类。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.90\textwidth]{../pic/补充实验二/e217fb3b79bf940e0c1b1eecb3eac479.png}
+\caption{基于 CNN 的轨迹图像视觉分类器结构}
+\label{fig:supp_drone_cnn_arch}
+\end{figure}
+
+图~\ref{fig:supp_drone_cnn_arch} 展示了本实验中视觉分类器的基本结构。输入为轨迹渲染后的
+$28\times28$ 灰度图，卷积层负责提取笔画边缘、局部弯折和闭环等空间特征，池化层降低小幅位移
+带来的影响，全连接层将图像特征映射为数字类别概率。该结构与 MNIST 数字识别中的 CNN 思路一致，
+但在本实验中它不仅用于离线分类，还被进一步用作强化学习奖励的一部分。换言之，CNN 的模式识别
+结果从“最终评价指标”变成了“策略优化目标”：轨迹越接近目标数字，目标类别概率越高；轨迹越像乱码，
+OOD 概率越高，奖励越低。
+
+\subsubsection{无监督技能发现与下游迁移}
+
+无监督强化学习先不指定具体数字，而是鼓励策略学习多样化可控技能。预训练结束后，再通过
+zero-shot 技能搜索或 few-shot 微调寻找能画出目标数字的技能。zero-shot 阶段可采用 CEM
+在技能空间中搜索，使目标数字概率和奖励最大；few-shot 阶段则继续用目标数字奖励对策略做短时间
+微调。
+
+该实验与模式识别的联系主要体现在两个方面：第一，CNN 对轨迹图像进行数字模式识别，决定轨迹是否
+符合目标类别；第二，OOD/乱码类提供拒识能力，避免策略利用分类器漏洞生成不可读但高置信的图像。
+
+\subsection{数据集与实验设置}
+
+实验环境为 \texttt{DroneDigit-v0}。智能体输出二维连续动作，环境对位置进行积分得到轨迹；每个
+episode 结束后，轨迹被渲染成灰度图并输入 11 类 CNN 分类器。仓库文档给出的评价流程包括：
+加载预训练快照、搜索或选择技能、固定技能 rollout、保存奖励、目标类别概率、OOD 概率、置信间隔、
+轨迹图和分类器输入图。
+
+\begin{table}[H]
+\centering
+\caption{补充实验二主要模块与设置}
+\label{tab:supp_drone_components}
+\small
+\input{../results/supplemental/drone_components_table.tex}
+\end{table}
+
+对比实验可设置为 CIC、BeCL、CESD 等无监督技能发现算法；目标数字为 $0\sim9$；每个目标数字在
+多个随机种子下测试。实验分为 zero-shot 和 few-shot 两种情况：zero-shot 不更新策略，只搜索技能；
+few-shot 在预训练策略基础上针对目标数字进行短步数微调。
+
+\subsection{方法设计与程序框图}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.98\textwidth}{!}{
+\begin{tikzpicture}[
+  >=stealth,
+  every node/.style={font=\small},
+  block/.style={rectangle, draw, rounded corners, align=center,
+    minimum width=3.0cm, minimum height=0.92cm},
+  note/.style={rectangle, draw, dashed, align=center,
+    minimum width=3.0cm, minimum height=0.82cm}
+]
+\node[block] (skill) at (0,0) {无监督技能\\或策略网络};
+\node[block] (action) at (3.7,0) {二维连续动作\\$(a_x,a_y)$};
+\node[block] (env) at (7.4,0) {无人机轨迹环境\\积分与记录};
+\node[block] (render) at (11.1,0) {轨迹渲染\\$28\times28$ 图像};
+
+\node[block] (cnn) at (11.1,-2.2) {11 类 CNN\\数字/OOD 概率};
+\node[block] (reward) at (7.4,-2.2) {视觉奖励\\$p_k,p_{\mathrm{ood}},margin$};
+\node[block] (update) at (3.7,-2.2) {技能搜索/微调\\CEM 或 few-shot};
+\node[note] (eval) at (0,-2.2) {结果记录\\轨迹图、概率、成功率};
+
+\draw[->] (skill) -- (action);
+\draw[->] (action) -- (env);
+\draw[->] (env) -- (render);
+\draw[->] (render) -- (cnn);
+\draw[->] (cnn) -- (reward);
+\draw[->] (reward) -- (update);
+\draw[->] (update.north) -- ++(0,0.48) -| (skill.south);
+\draw[->] (update) -- (eval);
+\end{tikzpicture}}
+\caption{视觉分类器奖励引导的无人机数字轨迹生成流程}
+\label{fig:supp_drone_flow}
+\end{figure}
+
+图~\ref{fig:supp_drone_flow} 中形成了一个由模式识别模型参与的闭环：策略负责生成轨迹，CNN
+负责识别轨迹像哪个数字，识别结果再反过来构成奖励。若目标是数字 8，则一条好的轨迹应具有较高的
+$p_8$、较低的 $p_{\mathrm{ood}}$，并且 $p_8$ 与其他数字概率之间有足够大的 margin。
+
+\subsection{实验结果与分析}
+
+当前报告根据仓库文档和已有可视化结果整理该实验的评价指标和结果记录格式。表~\ref{tab:supp_drone_metrics}
+记录了实验结果应包含的关键量；对应数值可由 \texttt{evaluate\_zero\_shot\_skill.py}、
+\texttt{finetune.py} 和可视化脚本生成。
+
+\begin{table}[H]
+\centering
+\caption{补充实验二评价指标与结果记录}
+\label{tab:supp_drone_metrics}
+\small
+\input{../results/supplemental/drone_metrics_table.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../pic/补充实验二/图片2.png}
+  \caption{BECL 多技能轨迹可视化}
+  \label{fig:supp_drone_becl}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../pic/补充实验二/图片1.png}
+  \caption{目标数字 6 的规划效果}
+  \label{fig:supp_drone_digit6}
+\end{subfigure}
+\caption{补充实验二轨迹生成与技能可视化结果}
+\label{fig:supp_drone_visual_results}
+\end{figure}
+
+图~\ref{fig:supp_drone_becl} 给出了 BECL 方法学习到的多条技能轨迹。不同颜色代表不同技能，
+可以看到各技能在方向、长度和弯曲方式上存在明显差异，说明无监督预训练阶段并不是只学习单一运动
+模式，而是在技能空间中形成了多样化的轨迹原型。这样的多样性对后续 zero-shot 搜索很重要：如果
+预训练技能库中已经包含弧线、折线、闭合环等基本运动片段，搜索目标数字时就更容易找到接近数字
+形状的技能组合。
+
+图~\ref{fig:supp_drone_digit6} 展示了目标数字 6 的规划效果。蓝色曲线为无人机最终绘制轨迹，
+绿色点表示起点，黑色叉号表示终点。该轨迹形成了较清晰的上部弯折和下部闭环，因此 CNN 分类器给出
+较高的数字 6 评分。这个结果说明视觉分类器奖励能够把抽象的“数字形状相似性”转化为强化学习可以
+优化的反馈信号；同时，闭环是否完整、笔画是否连续也会直接影响分类器置信度。
+
+在结果分析时，需要同时观察数值指标和轨迹图像。若只看 \texttt{prob\_target}，策略可能生成局部
+纹理或不完整轨迹，使分类器短暂偏向目标数字；加入 \texttt{prob\_ood} 和 \texttt{margin} 后，
+可以过滤掉不可读轨迹。zero-shot 结果主要反映无监督技能库是否包含接近目标数字的运动模式；
+few-shot 结果则反映预训练技能是否便于迁移到具体数字任务。若某些数字如 1、7 较容易生成，而
+8、9 较难生成，通常与轨迹拓扑结构有关：闭环和交叉结构对连续控制策略要求更高。
+
+与前面 MNIST/CIFAR 图像分类实验相比，本实验中的图像不是固定数据集样本，而是由策略主动生成。
+分类器不只是评价最终结果，还直接影响学习方向。因此，视觉分类器的鲁棒性会影响强化学习策略：
+分类器若对乱码过于自信，策略可能学到投机轨迹；加入 OOD 类和 margin 约束后，奖励更符合人的
+视觉判断。
+
+\clearpage
+\section{总体总结}
+
+五个课内实验从参数 Bayes 分类、非参数估计、Fisher 线性判别、K-L 特征提取、K-L 应用和聚类分析等角度覆盖了模式识别课程中的主要方法。实验一除男女身高体重数据外，还补充了模拟高斯数据、UCI Iris、MNIST、CIFAR-10 和 CIFAR-100 上的 Bayes 分类实验，用于比较参数估计、非参数估计、最小错误率和最小风险准则在不同复杂度数据集上的表现。男女身高体重数据和 Iris 数据结构清晰，适合分析分类边界与概率模型；MNIST 和 CIFAR 等图像数据对特征表示要求更高，简单 PCA 特征和传统 Bayes 分类器性能有限。
+
+两个补充实验把课程方法扩展到更接近实际应用的视觉任务中。DT-ProtoYOLO 开集检测实验强调 unknown 拒识、原型距离和开放空间风险控制；无人机数字轨迹实验强调 CNN 视觉分类器作为奖励模型，把轨迹生成和模式识别联系起来。前者说明分类器需要知道“哪些样本不属于已知类”，后者说明分类器还可以参与决策与控制过程。通过这些实验可以看到，模式识别方法既可以用于低维统计分类，也可以作为现代视觉系统和智能体学习系统中的关键模块。
+\clearpage
+
+\appendix
+
+\section{核心程序代码}
+
+本附录集中列出正文实验中的关键程序片段。
+
+\subsection{实验一核心代码}
+
+\begin{lstlisting}[caption={Exp.1 data loading and label normalization},label={lst:exp1-data-read}]
+def normalize_label(label: str) -> str:
+    # 将 Female/Female-like 标签归一化为 F，Male/Male-like 标签归一化为 M
+    value = label.strip().upper()
+    if value.startswith("F"):
+        return "F"
+    if value.startswith("M"):
+        return "M"
+    raise ValueError(f"Unknown label: {label}")
+
+
+def read_test_file(path: Path) -> Tuple[np.ndarray, np.ndarray]:
+    # 测试文件每行包含：身高 体重 性别
+    rows = []
+    labels = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            height, weight, label = line.split()[:3]
+            rows.append((float(height), float(weight)))
+            labels.append(normalize_label(label))
+    return np.array(rows, dtype=float), np.array(labels)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.1 Gaussian parameter estimation},label={lst:exp1-gaussian-fit}]
+def fit_gaussian(x, y, features, covariance_mode):
+    # 对每一类分别估计均值向量和协方差矩阵
+    model = {}
+    for label in LABELS:
+        class_x = x[y == label][:, features]
+        if class_x.ndim == 1:
+            class_x = class_x[:, None]
+        mean = class_x.mean(axis=0)
+        centered = class_x - mean
+        cov = centered.T @ centered / len(class_x)  # MLE: 分母为 N
+        cov = np.atleast_2d(cov)
+        if covariance_mode == "diag":
+            cov = np.diag(np.diag(cov))  # 不相关假设：只保留方差
+        cov = cov + np.eye(cov.shape[0]) * 1e-6
+        model[label] = {"mean": mean, "cov": cov}
+    return model
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.1 minimum-error Bayes decision},label={lst:exp1-gaussian-predict}]
+def predict_gaussian(model, x, features, priors):
+    # 比较 log p(x|wi) + log P(wi)，得分更大的类别即预测类别
+    x_selected = x[:, features]
+    if x_selected.ndim == 1:
+        x_selected = x_selected[:, None]
+    scores = []
+    for label, prior in zip(LABELS, priors):
+        params = model[label]
+        log_px = log_gaussian_density(x_selected, params["mean"], params["cov"])
+        scores.append(log_px + math.log(prior))
+    score_matrix = np.vstack(scores).T
+    return np.array([LABELS[idx] for idx in np.argmax(score_matrix, axis=1)])
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.1 minimum-risk Bayes decision},label={lst:exp1-min-risk}]
+def predict_min_risk(model, x, features, priors,
+                     loss_predict_f_when_m=1.0,
+                     loss_predict_m_when_f=2.0):
+    # 计算两个类别的对数后验得分
+    x_selected = x[:, features]
+    log_posts = []
+    for label, prior in zip(LABELS, priors):
+        params = model[label]
+        log_posts.append(
+            log_gaussian_density(x_selected, params["mean"], params["cov"])
+            + math.log(prior)
+        )
+    log_posts = np.vstack(log_posts).T
+
+    # 对数得分归一化为后验概率
+    max_log = np.max(log_posts, axis=1, keepdims=True)
+    posts = np.exp(log_posts - max_log)
+    posts = posts / posts.sum(axis=1, keepdims=True)
+
+    # 根据损失表计算条件风险，选择风险更小的判决
+    posterior_f = posts[:, 0]
+    posterior_m = posts[:, 1]
+    risk_predict_f = loss_predict_f_when_m * posterior_m
+    risk_predict_m = loss_predict_m_when_f * posterior_f
+    return np.where(risk_predict_f <= risk_predict_m, "F", "M")
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.1 Parzen and kNN classifiers},label={lst:exp1-nonparametric}]
+def predict_parzen(train_x, train_y, x, features, priors, bandwidth):
+    # 对每个类别估计 Parzen 密度，再代入 Bayes 判别函数
+    x_selected = x[:, features]
+    class_scores = []
+    for label, prior in zip(LABELS, priors):
+        samples = train_x[train_y == label][:, features]
+        density = parzen_density(x_selected, samples, bandwidth)
+        class_scores.append(np.log(density + 1e-300) + math.log(prior))
+    scores = np.vstack(class_scores).T
+    return np.array([LABELS[idx] for idx in np.argmax(scores, axis=1)])
+
+
+def predict_knn(train_x, train_y, x, features, k):
+    # 找到距离测试样本最近的 k 个训练样本，用多数类别作为预测
+    train_selected = train_x[:, features]
+    query = x[:, features]
+    preds = []
+    for row in query:
+        distances = np.linalg.norm(train_selected - row, axis=1)
+        nearest = np.argsort(distances)[:k]
+        labels, counts = np.unique(train_y[nearest], return_counts=True)
+        preds.append(sorted(labels[counts == counts.max()])[0])
+    return np.array(preds)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.1 extension unified Bayes evaluation},label={lst:exp1-extended-eval}]
+def evaluate_dataset(name, train_x, train_y, test_x, test_y,
+                     use_pca, param_cov, nonparam):
+    # 图像数据先 PCA 降维，低维数据直接标准化后分类
+    train_x, test_x, prep_note = preprocess(train_x, test_x, use_pca=use_pca)
+    labels = np.unique(train_y)
+
+    # 构造损失矩阵：正确分类损失为 0，一般错分损失为 1，
+    # 第一类样本被错分时损失为 2
+    loss = loss_matrix(len(labels))
+
+    # 参数估计：高斯 Bayes，低维用完整协方差，高维图像用对角协方差
+    param = GaussianBayes(param_cov).fit(train_x, train_y)
+    pred_param = param.predict(test_x)
+    pred_param_risk = param.predict_risk(test_x, loss)
+
+    # 非参数估计：低维数据用 Parzen 窗，图像数据用 kNN 估计后验概率
+    if nonparam == "parzen":
+        non = ParzenBayes(bandwidth=0.8).fit(train_x, train_y)
+    else:
+        non = KNNBayes(k=5).fit(train_x, train_y)
+    pred_non = non.predict(test_x)
+    pred_non_risk = non.predict_risk(test_x, loss)
+
+    # 记录最小错误率和最小风险两类结果
+    return [
+        metric_row(name, "参数最小错误率", prep_note, test_y, pred_param),
+        metric_row(name, "参数最小风险", prep_note, test_y, pred_param_risk),
+        metric_row(name, "非参数最小错误率", prep_note, test_y, pred_non),
+        metric_row(name, "非参数最小风险", prep_note, test_y, pred_non_risk),
+    ]
+\end{lstlisting}
+
+\subsection{实验二核心代码}
+
+\begin{lstlisting}[caption={Exp.2 Parzen density estimation},label={lst:exp2-parzen}]
+def parzen_density(query, samples, bandwidth):
+    # query 是待分类样本，samples 是某一类训练样本
+    # 使用高斯核函数估计 query 在该类别下的概率密度
+    diff = query[:, None, :] - samples[None, :, :]
+    exponent = -0.5 * np.sum((diff / bandwidth) ** 2, axis=2)
+    coef = 1.0 / ((2 * math.pi) ** (samples.shape[1] / 2)
+                  * bandwidth ** samples.shape[1])
+    return coef * np.exp(exponent).mean(axis=1)
+
+
+def predict_parzen(train_x, train_y, query, bandwidth, priors=PRIOR_EQUAL):
+    # 分别估计女生和男生的 Parzen 密度，再比较 Bayes 对数得分
+    scores = []
+    for label, prior in zip(LABELS, priors):
+        samples = train_x[train_y == label]
+        density = parzen_density(query, samples, bandwidth)
+        scores.append(np.log(density + 1e-300) + math.log(prior))
+    score_matrix = np.vstack(scores).T
+    return np.array([LABELS[idx] for idx in np.argmax(score_matrix, axis=1)])
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.2 Fisher linear discriminant},label={lst:exp2-fisher}]
+def fit_fisher(x, y):
+    # 取出女生和男生样本
+    f = x[y == "F"]
+    m = x[y == "M"]
+    mean_f = f.mean(axis=0)
+    mean_m = m.mean(axis=0)
+
+    # 类内散度矩阵 Sw，反映同类样本内部的离散程度
+    sw = (f - mean_f).T @ (f - mean_f) + (m - mean_m).T @ (m - mean_m)
+
+    # Fisher 最优投影方向：Sw 的伪逆乘以类均值差
+    w = np.linalg.pinv(sw) @ (mean_m - mean_f)
+
+    # 把训练样本投影到一维，并取两类投影均值中点作为阈值
+    proj_f = f @ w
+    proj_m = m @ w
+    threshold = 0.5 * (proj_f.mean() + proj_m.mean())
+    direction = 1.0 if proj_m.mean() > proj_f.mean() else -1.0
+    return {"w": w, "threshold": np.array([threshold]), "direction": np.array([direction])}
+
+
+def predict_fisher(model, x):
+    # 计算投影值，超过阈值则判为男生，否则判为女生
+    scores = x @ model["w"]
+    threshold = float(model["threshold"][0])
+    direction = float(model["direction"][0])
+    is_m = scores >= threshold if direction > 0 else scores < threshold
+    return np.where(is_m, "M", "F")
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.2 leave-one-out validation},label={lst:exp2-loo}]
+def loo_error_fisher(x, y):
+    # 对训练集中的每一个样本做一次“留一”验证
+    errors = 0
+    for idx in range(len(x)):
+        mask = np.ones(len(x), dtype=bool)
+        mask[idx] = False
+
+        # 用剩余 N-1 个样本重新训练 Fisher 分类器
+        model = fit_fisher(x[mask], y[mask])
+
+        # 用训练好的模型预测被留下的这个样本
+        pred = predict_fisher(model, x[idx : idx + 1])[0]
+        errors += int(pred != y[idx])
+    return errors / len(x)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.2 extended datasets: LDA and non-parametric comparison},label={lst:exp2-extended}]
+def fit_lda(x, y):
+    # 多分类 Fisher 的实现形式为 LDA
+    # shrinkage 用于提高高维 PCA 特征上的数值稳定性
+    model = LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto")
+    model.fit(x, y)
+    return model
+
+
+def evaluate_dataset(train_x, train_y, test_x, test_y, nonparam):
+    # 图像数据先标准化并用 PCA 降到 64 维，低维数据只标准化
+    train_z, test_z = preprocess(train_x, test_x)
+
+    # 参数 Bayes 基线
+    gaussian = GaussianNB().fit(train_z, train_y)
+
+    # 非参数方法：低维数据用 Parzen 窗，图像数据用 kNN
+    if nonparam == "parzen":
+        non_model = ParzenBayes(bandwidth=0.8).fit(train_z, train_y)
+    else:
+        non_model = KNeighborsClassifier(n_neighbors=5).fit(train_z, train_y)
+
+    # Fisher/LDA 线性分类器
+    lda = fit_lda(train_z, train_y)
+
+    pred_gaussian = gaussian.predict(test_z)
+    pred_nonparam = non_model.predict(test_z)
+    pred_lda = lda.predict(test_z)
+    return pred_gaussian, pred_nonparam, pred_lda
+
+
+def loo_error(x, y, fit_predict_one):
+    # 在训练集或分层训练子集上进行留一法估计
+    errors = 0
+    for idx in range(len(x)):
+        mask = np.ones(len(x), dtype=bool)
+        mask[idx] = False
+        pred = fit_predict_one(x[mask], y[mask], x[idx : idx + 1])
+        errors += int(pred != y[idx])
+    return errors / len(x)
+\end{lstlisting}
+
+\subsection{实验三核心代码}
+
+\begin{lstlisting}[caption={Exp.3 K-L/PCA computation},label={lst:exp3-pca}]
+def fit_pca_kl(x):
+    # 计算总体均值，并对样本中心化
+    mean = x.mean(axis=0)
+    centered = x - mean
+
+    # 最大似然形式的总体协方差矩阵，分母取样本数 N
+    cov = centered.T @ centered / len(x)
+
+    # 对协方差矩阵做特征值分解
+    eigvals, eigvecs = np.linalg.eigh(cov)
+
+    # 按特征值从大到小排列，第一列就是第一主成分方向
+    order = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[order]
+    eigvecs = eigvecs[:, order]
+    return {"mean": mean, "cov": cov, "eigvals": eigvals, "eigvecs": eigvecs}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.3 projection classifier},label={lst:exp3-projection}]
+def fit_projection_classifier(x, y, direction):
+    # 将二维样本投影到给定方向上，得到一维特征
+    proj = x @ direction
+
+    # 分别计算女生和男生在该方向上的投影均值
+    mean_f = proj[y == "F"].mean()
+    mean_m = proj[y == "M"].mean()
+
+    # 阈值取两个类别投影均值的中点
+    threshold = 0.5 * (mean_f + mean_m)
+    sign = 1.0 if mean_m > mean_f else -1.0
+    return {"direction": direction, "threshold": np.array([threshold]), "sign": np.array([sign])}
+
+
+def predict_projection(model, x):
+    # 根据投影值与阈值的关系进行二分类
+    scores = x @ model["direction"]
+    threshold = float(model["threshold"][0])
+    sign = float(model.get("sign", np.array([1.0]))[0])
+    is_m = scores >= threshold if sign > 0 else scores < threshold
+    return np.where(is_m, "M", "F")
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.3 mean-difference direction},label={lst:exp3-mean-direction}]
+def fit_mean_direction(x, y):
+    # 分别计算男女类别均值
+    mean_f = x[y == "F"].mean(axis=0)
+    mean_m = x[y == "M"].mean(axis=0)
+
+    # 类均值差方向，并归一化为单位向量
+    direction = mean_m - mean_f
+    direction = direction / np.linalg.norm(direction)
+
+    # 阈值取两个类均值中点在该方向上的投影
+    midpoint = 0.5 * (mean_f + mean_m)
+    threshold = float(midpoint @ direction)
+    return {"direction": direction, "threshold": np.array([threshold])}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.3 extended datasets: PCA feature extraction},label={lst:exp3-extended}]
+def evaluate_dataset(train_x, train_y, test_x, test_y, pca_k):
+    # 先标准化特征，避免量纲或像素取值范围影响协方差矩阵
+    train_z, test_z = standardize(train_x, test_x)
+
+    # 只取第一主成分，观察最大方差方向本身的分类能力
+    pred_pc1, pca1 = pca_nearest_centroid(train_z, train_y, test_z, 1)
+
+    # 取前 pca_k 个主成分，观察多维 K-L/PCA 特征的分类能力
+    pred_pca_k, pca_k_model = pca_nearest_centroid(
+        train_z, train_y, test_z, pca_k
+    )
+
+    # 使用类别标签训练 LDA，作为监督判别投影的对比
+    pred_lda = lda_predict(train_z, train_y, test_z)
+
+    return {
+        "pc1_variance": pca_k_model.explained_variance_ratio_[0],
+        "pca_k_variance": pca_k_model.explained_variance_ratio_.sum(),
+        "pc1_accuracy": accuracy_score(test_y, pred_pc1),
+        "pca_k_accuracy": accuracy_score(test_y, pred_pca_k),
+        "lda_accuracy": accuracy_score(test_y, pred_lda),
+    }
+\end{lstlisting}
+
+\subsection{实验四核心代码}
+
+\begin{lstlisting}[caption={Exp.4 face dataset split for Eigenfaces},label={lst:exp4-face-split}]
+def load_faces():
+    # Olivetti Faces 与 ORL/AT&T 数据集形式接近：
+    # 40 人，每人 10 张，64x64 灰度图
+    data = fetch_olivetti_faces(data_home=DATA_HOME, shuffle=False)
+    return (
+        data.data.astype(np.float32),
+        data.images.astype(np.float32),
+        data.target.astype(int),
+    )
+
+
+def split_by_person(x, images, y):
+    # 每个人前 6 张作为训练样本，后 4 张作为测试样本
+    train_indices = []
+    test_indices = []
+    for person in sorted(np.unique(y)):
+        indices = np.flatnonzero(y == person)
+        train_indices.extend(indices[:TRAIN_PER_PERSON])
+        test_indices.extend(indices[TRAIN_PER_PERSON:])
+
+    train_indices = np.array(train_indices)
+    test_indices = np.array(test_indices)
+    return {
+        "x_train": x[train_indices],
+        "y_train": y[train_indices],
+        "img_train": images[train_indices],
+        "x_test": x[test_indices],
+        "y_test": y[test_indices],
+        "img_test": images[test_indices],
+    }
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.4 Eigenfaces feature extraction and classifiers},label={lst:exp4-face-classifier}]
+def fit_eval_models(x_train, y_train, x_test, y_test, n_components):
+    # 在标准化后的图像向量上进行 K-L/PCA 特征脸提取
+    models = {
+        "Eigenfaces+NearestCentroid": make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_components, whiten=True, random_state=2026),
+            NearestCentroid(),
+        ),
+        "Eigenfaces+1NN": make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_components, whiten=True, random_state=2026),
+            KNeighborsClassifier(n_neighbors=1),
+        ),
+        "Eigenfaces+SVM": make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_components, whiten=True, random_state=2026),
+            SVC(kernel="linear", C=1.0, random_state=2026),
+        ),
+    }
+
+    rows = []
+    for name, model in models.items():
+        model.fit(x_train, y_train)
+        pred_train = model.predict(x_train)
+        pred_test = model.predict(x_test)
+        rows.append({
+            "method": name,
+            "n_components": n_components,
+            "train_accuracy": accuracy_score(y_train, pred_train),
+            "test_accuracy": accuracy_score(y_test, pred_test),
+        })
+    return rows
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.4 supplementary aircraft image loading},label={lst:exp4-plane-load}]
+def read_image(path):
+    # 使用 OpenCV 读取飞机图像，并转换为灰度图
+    data = np.fromfile(str(path), dtype=np.uint8)
+    image = cv2.imdecode(data, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        raise ValueError(f"Could not read image: {path}")
+
+    # 将所有图像缩放到统一大小，便于展开为固定维数向量
+    image = cv2.resize(image, IMAGE_SIZE, interpolation=cv2.INTER_AREA)
+
+    # 像素归一化到 [0,1]，再在 load_split 中展平为 1024 维向量
+    return image.astype(np.float32) / 255.0
+
+
+def load_split(split):
+    rows, labels, paths = [], [], []
+    for path, label in image_paths(split):
+        rows.append(read_image(path).reshape(-1))
+        labels.append(label)
+        paths.append(path)
+    return np.vstack(rows), np.array(labels), paths
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Exp.4 supplementary aircraft PCA classifiers},label={lst:exp4-plane-classifier}]
+def fit_and_eval(x_train, y_train, x_test, y_test, n_components):
+    # K-L/PCA 主成分数不能超过样本数和原始特征维数
+    n_components = min(n_components, x_train.shape[0], x_train.shape[1])
+
+    # 两种分类器都在标准化后的 PCA 特征空间中训练和预测
+    models = {
+        "PCA+NearestCentroid": make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_components, random_state=2026),
+            NearestCentroid(),
+        ),
+        "PCA+1NN": make_pipeline(
+            StandardScaler(),
+            PCA(n_components=n_components, random_state=2026),
+            KNeighborsClassifier(n_neighbors=1),
+        ),
+    }
+
+    rows = []
+    for name, model in models.items():
+        model.fit(x_train, y_train)
+        pred_train = model.predict(x_train)
+        pred_test = model.predict(x_test)
+        rows.append(
+            {
+                "method": name,
+                "n_components": n_components,
+                "train_accuracy": accuracy_score(y_train, pred_train),
+                "test_accuracy": accuracy_score(y_test, pred_test),
+            }
+        )
+    return rows
+\end{lstlisting}
+
+\subsection{实验五核心代码}
+
+\begin{lstlisting}[caption={Exp.5 C-means implementation},label={lst:exp5-cmeans}]
 def c_means(x, n_clusters, seed, max_iter=200, tol=1e-6):
     # 随机选择 C 个样本作为初始聚类中心
     rng = np.random.default_rng(seed)
@@ -1355,8 +3056,7 @@ def c_means(x, n_clusters, seed, max_iter=200, tol=1e-6):
     return labels, centers, inertia, iteration
 \end{lstlisting}
 
-聚类指标计算与不同类别数实验如下：
-\begin{lstlisting}
+\begin{lstlisting}[caption={Exp.5 cluster-number metrics},label={lst:exp5-k-range}]
 def evaluate_k_range(x_scaled, y, dataset_name):
     # 分别测试 C=2,3,4,5，记录 SSE、轮廓系数和 ARI
     rows = []
@@ -1376,8 +3076,7 @@ def evaluate_k_range(x_scaled, y, dataset_name):
     return rows
 \end{lstlisting}
 
-Ward 分级聚类使用已有程序完成，代码如下：
-\begin{lstlisting}
+\begin{lstlisting}[caption={Exp.5 Ward hierarchical clustering},label={lst:exp5-ward}]
 def evaluate_hierarchical(x_scaled, y, dataset_name):
     # Ward 分级聚类：每次合并使类内平方误差增加最小的簇
     clustering = AgglomerativeClustering(n_clusters=2, linkage="ward")
@@ -1392,125 +3091,95 @@ def evaluate_hierarchical(x_scaled, y, dataset_name):
     }
 \end{lstlisting}
 
-\subsection{实验步骤与结果分析}
+\subsection{补充实验一核心代码}
 
-\subsubsection{步骤一：训练集上 C=2 的 C 均值聚类与初始值影响}
+\begin{lstlisting}[caption={Supplement 1 open-set decision rule},label={lst:supp-osod-decision}]
+def decide_status(score, distance, alpha=0.37, beta=0.10, delta=16.5):
+    # score：检测框最大类别置信度
+    # distance：投影特征与预测类别原型之间的欧氏距离
+    # alpha：确认已知类的高置信阈值
+    # beta：区分目标候选和背景的低置信阈值
+    # delta：原型空间中的已知类距离阈值
+    if score >= alpha and distance <= delta:
+        return "known"
+    if score >= beta and (score < alpha or distance > delta):
+        return "unknown"
+    return "background"
+\end{lstlisting}
 
-首先将 \texttt{FEMALE.TXT} 和 \texttt{MALE.TXT} 合并，使用身高和体重两个特征，设 $C=2$ 进行 C 均值聚类。结果如图 \ref{fig:exp5_cmeans_train} 所示。
+\begin{lstlisting}[caption={Supplement 1 prototype regularization},label={lst:supp-osod-proto}]
+def prototype_regularization(z, y, prototypes, margin=1.0,
+                             lambda_attr=1.0, lambda_rep=0.2):
+    # z：目标候选框的投影特征，形状为 [batch, proto_dim]
+    # y：已知类标签
+    # prototypes：所有已知类的可学习原型
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_train_2clusters.pdf}
-\caption{训练集 C 均值聚类结果，$C=2$}
-\label{fig:exp5_cmeans_train}
-\end{figure}
+    # 吸引项：同类样本靠近本类原型
+    target_proto = prototypes[y]
+    l_attr = ((z - target_proto) ** 2).sum(dim=1).mean()
 
-聚类结果大致形成“较矮较轻”和“较高较重”两个簇，与男女样本的统计差异基本一致。虽然聚类算法没有使用性别标签，但最佳性别匹配率达到 85.00\%，说明身高体重特征中确实存在明显的自然分组结构。
+    # 排斥项：样本与非目标类原型保持一定间隔
+    all_dist = torch.cdist(z, prototypes)
+    mask = torch.ones_like(all_dist, dtype=torch.bool)
+    mask[torch.arange(len(y)), y] = False
+    negative_dist = all_dist[mask].view(len(y), -1)
+    l_rep = torch.relu(margin - negative_dist).pow(2).mean()
 
-为考察初始中心影响，对 $C=2$ 使用 10 个不同随机种子重复实验，结果如图 \ref{fig:exp5_init} 所示。
+    return lambda_attr * l_attr + lambda_rep * l_rep
+\end{lstlisting}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/init_variation.pdf}
-\caption{不同初始中心对 C 均值聚类结果的影响}
-\label{fig:exp5_init}
-\end{figure}
+\subsection{补充实验二核心代码}
 
-不同初始值下 SSE 在 80.3193 到 80.3950 之间变化，性别匹配率在 85.00\% 到 87.00\% 之间变化。说明该数据集聚类结构较稳定，但边界附近样本仍可能因初始中心不同而改变归属。因此实际使用 C 均值时，应多次初始化并选择 SSE 较小的结果。
+\begin{lstlisting}[caption={Supplement 2 classifier-guided reward},label={lst:supp-drone-reward}]
+def classifier_guided_reward(trajectory, target_digit, classifier):
+    # 将无人机连续轨迹渲染成 28x28 灰度图
+    image = render_trajectory_to_28x28(trajectory)
 
-\subsubsection{步骤二：不同类别数下的聚类指标}
+    # CNN 输出 11 类概率：0-9 为数字类，10 为 OOD/乱码类
+    probs = classifier.predict_proba(image)
+    p_target = probs[target_digit]
+    p_ood = probs[10]
 
-在训练集上分别设置 $C=2,3,4,5$，记录 SSE 和轮廓系数，如图 \ref{fig:exp5_k_train} 所示。
+    # 计算目标类与最强非目标数字类之间的置信间隔
+    digit_probs = probs[:10].copy()
+    digit_probs[target_digit] = -1.0
+    p_confuse = digit_probs.max()
+    margin = p_target - p_confuse
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_k_metrics_train.pdf}
-\caption{训练集上不同类别数的 C 均值聚类指标}
-\label{fig:exp5_k_train}
-\end{figure}
+    # 奖励鼓励目标数字概率和间隔，惩罚 OOD/乱码概率
+    reward = p_target + 0.5 * margin - 0.8 * p_ood
+    return reward, {
+        "prob_target": p_target,
+        "prob_confuse": p_confuse,
+        "prob_ood": p_ood,
+        "margin": margin,
+        "image": image,
+    }
+\end{lstlisting}
 
-训练集上 $C=2,3,4,5$ 的 SSE 分别为 80.3950、52.4481、42.1838、34.8358。SSE 随类别数增加单调下降，这是因为更多中心必然能降低类内平方误差。但轮廓系数分别为 0.5108、0.4333、0.3891、0.3660，随类别数增加下降。综合来看，$C=2$ 的轮廓系数最高，且与男女两类的先验认知一致，因此训练集上合理类别数更倾向于 2。
+\begin{lstlisting}[caption={Supplement 2 zero-shot skill evaluation},label={lst:supp-drone-zeroshot}]
+def evaluate_zero_shot_skill(agent, env, target_digit, classifier, skill_candidates):
+    best_result = None
 
-\subsubsection{步骤三：Ward 分级聚类}
+    # 在预训练技能空间中搜索，不更新策略参数
+    for skill in skill_candidates:
+        obs, info = env.reset(skill=skill)
+        done = False
+        trajectory = []
 
-对训练集使用 Ward 分级聚类，树状图如图 \ref{fig:exp5_dendrogram} 所示，取两类后的二维聚类结果如图 \ref{fig:exp5_hier_train} 所示。
+        while not done:
+            action = agent.act(obs, skill=skill, eval_mode=True)
+            obs, reward_env, terminated, truncated, info = env.step(action)
+            trajectory.append(info["position"])
+            done = terminated or truncated
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.82\textwidth]{figures/experiment5/hierarchical_dendrogram_train.pdf}
-\caption{训练集 Ward 分级聚类树状图}
-\label{fig:exp5_dendrogram}
-\end{figure}
+        reward, metrics = classifier_guided_reward(
+            trajectory, target_digit, classifier
+        )
+        if best_result is None or reward > best_result["reward"]:
+            best_result = {"skill": skill, "reward": reward, **metrics}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/hierarchical_train_2clusters.pdf}
-\caption{训练集 Ward 分级聚类结果，$C=2$}
-\label{fig:exp5_hier_train}
-\end{figure}
+    return best_result
+\end{lstlisting}
 
-Ward 分级聚类在训练集上取两类时，轮廓系数为 0.5049，ARI 为 0.3789，性别匹配率为 81.00\%。其性别匹配率略低于 C 均值，但分级聚类的优势在于可以通过树状图观察样本逐层合并的过程，不依赖随机初始中心。
-
-\subsubsection{步骤四：加入 test2 后重复实验}
-
-最后将训练集与 \texttt{test2.txt} 合并，共 400 个样本，其中男生比例明显升高。对合并数据重复 $C=2$ 的 C 均值聚类，结果如图 \ref{fig:exp5_cmeans_combined} 所示。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_combined_2clusters.pdf}
-\caption{训练集与 test2 合并后的 C 均值聚类结果，$C=2$}
-\label{fig:exp5_cmeans_combined}
-\end{figure}
-
-合并数据上不同类别数的指标如图 \ref{fig:exp5_k_combined} 所示。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/cmeans_k_metrics_combined.pdf}
-\caption{训练集与 test2 合并后不同类别数的 C 均值聚类指标}
-\label{fig:exp5_k_combined}
-\end{figure}
-
-对合并数据使用 Ward 分级聚类并取两类，结果如图 \ref{fig:exp5_hier_combined} 所示。
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.74\textwidth]{figures/experiment5/hierarchical_combined_2clusters.pdf}
-\caption{训练集与 test2 合并后的 Ward 分级聚类结果，$C=2$}
-\label{fig:exp5_hier_combined}
-\end{figure}
-
-合并数据中 C 均值 $C=2$ 的轮廓系数为 0.4850，ARI 为 0.4693，性别匹配率为 84.50\%；Ward 分级聚类的轮廓系数为 0.4739，性别匹配率为 82.50\%。与训练集相比，合并数据的轮廓系数略有下降，说明新增样本增加了类内变化和边界重叠；但 $C=2$ 仍然具有最高轮廓系数，说明合理类别数仍可认为是 2。
-
-\begin{table}[H]
-\centering
-\caption{实验五聚类结果汇总}
-\label{tab:exp5_summary}
-\small
-\input{../results/experiment5_clustering/summary_table.tex}
-\end{table}
-
-\subsection{综合实验结果与分析总结}
-
-综合表 \ref{tab:exp5_summary} 和各图可以得到以下结论：
-\begin{itemize}
-  \item C 均值在训练集上取 $C=2$ 时性别匹配率为 85.00\%，说明身高体重空间中存在与性别相关的自然聚类结构。
-  \item 不同初始中心会造成少量边界样本变化，但 SSE 和性别匹配率波动较小，说明该数据集上 C 均值结果较稳定。
-  \item 随着类别数从 2 增加到 5，SSE 持续下降，但轮廓系数下降，说明继续增加类别数会把自然的两类结构过度切分。
-  \item Ward 分级聚类不需要随机初始化，能展示层次结构，但本数据集上性别匹配率略低于 C 均值。
-  \item 加入 test2 后，样本量增大且男生比例提高，聚类指标略有下降，但两类结构仍然最合理。
-\end{itemize}
-
-聚类结果与前面监督分类实验相互印证：身高和体重确实具有性别区分信息，但男女样本在边界区域存在重叠，因此无监督聚类无法完全恢复真实性别标签。聚类算法发现的是数据几何结构，而不是语义标签本身。
-
-\subsection{体会}
-
-通过本实验可以体会到，聚类与分类的目标不同。分类器利用标签学习判别边界，而聚类只根据距离和分布自动分组。即使聚类结果与性别标签较一致，也只能说明特征空间中存在相应结构，不能说明聚类算法真正理解了“性别”这个类别含义。
-
-C 均值算法实现简单、效率高，适合低维连续特征；但它对类别数、初始中心和标准化处理敏感。分级聚类能够展示更丰富的层次关系，适合观察样本合并过程。实验中两种方法都支持 $C=2$ 是较合理类别数，这与男女数据集的真实类别数一致，也说明身高和体重是较有效的聚类特征。
-
-\clearpage
-\section{总体总结}
-
-五个实验从参数 Bayes 分类、非参数估计、Fisher 线性判别、K-L 特征提取、K-L 应用和聚类分析等角度完整覆盖了模式识别课程中的重要方法。总体来看，男女身高体重数据结构清晰，适合用于理解分类边界、特征投影和聚类结构之间的关系；图像类实验则展示了 K-L/PCA 在高维数据降维中的应用价值。后续若进一步完善，可以补充更多超参数敏感性分析和更复杂数据集上的泛化比较。
 \end{document}

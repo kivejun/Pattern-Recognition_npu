@@ -1,15 +1,16 @@
-\begin{tabular}{p{3.2cm}p{4.0cm}p{1.8cm}p{1.8cm}p{2.4cm}}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{5.0cm}>{\centering\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{1.7cm}}
 \toprule
-方法 & 设置 & 训练准确率 & test1准确率 & test2准确率 \\
+方法 & 设置 & 训练准确率 & test1 准确率 & test2 准确率 \\
 \midrule
-单特征 Bayes & height; P(F)=0.50, P(M)=0.50 & 86.00\% & 94.29\% & 91.00\% \\
-单特征 Bayes & weight; P(F)=0.50, P(M)=0.50 & 82.00\% & 94.29\% & 85.33\% \\
-二维相关 Bayes & height\_weight\_full\_cov; P(F)=0.50, P(M)=0.50 & 88.00\% & 97.14\% & 89.33\% \\
-二维不相关 Bayes & height\_weight\_diag\_cov; P(F)=0.50, P(M)=0.50 & 88.00\% & 97.14\% & 90.33\% \\
-不同先验 Bayes & height\_weight\_full\_cov; P(F)=0.75, P(M)=0.25 & 86.00\% & 85.71\% & 80.00\% \\
-不同先验 Bayes & height\_weight\_full\_cov; P(F)=0.90, P(M)=0.10 & 79.00\% & 80.00\% & 67.33\% \\
-最小风险 Bayes & height\_weight\_full\_cov; P(F)=0.50, P(M)=0.50; loss M|F=2, loss F|M=1 & 84.00\% & 94.29\% & 84.33\% \\
-Parzen Bayes & height\_weight; Gaussian kernel h=5.0; P(F)=0.50, P(M)=0.50 & 87.00\% & 97.14\% & 90.33\% \\
-kNN & height\_weight; k=5 & 89.00\% & 100.00\% & 90.33\% \\
+单特征 Bayes & 身高特征；$P(F)=0.50$，$P(M)=0.50$ & 86.00\% & 94.29\% & 91.00\% \\
+单特征 Bayes & 体重特征；$P(F)=0.50$，$P(M)=0.50$ & 82.00\% & 94.29\% & 85.33\% \\
+二维相关 Bayes & 身高 + 体重；完整协方差；$P(F)=0.50$，$P(M)=0.50$ & 88.00\% & 97.14\% & 89.33\% \\
+二维不相关 Bayes & 身高 + 体重；对角协方差；$P(F)=0.50$，$P(M)=0.50$ & 88.00\% & 97.14\% & 90.33\% \\
+不同先验 Bayes & 身高 + 体重；完整协方差；$P(F)=0.75$，$P(M)=0.25$ & 86.00\% & 85.71\% & 80.00\% \\
+不同先验 Bayes & 身高 + 体重；完整协方差；$P(F)=0.90$，$P(M)=0.10$ & 79.00\% & 80.00\% & 67.33\% \\
+最小风险 Bayes & 身高 + 体重；完整协方差；$P(F)=0.50$，$P(M)=0.50$；$\lambda_{MF}=2$，$\lambda_{FM}=1$ & 84.00\% & 94.29\% & 84.33\% \\
+Parzen Bayes & 身高 + 体重；高斯核；$h=5.0$；$P(F)=0.50$，$P(M)=0.50$ & 87.00\% & 97.14\% & 90.33\% \\
+$k$ 近邻 & 身高 + 体重；$k=5$ & 89.00\% & 100.00\% & 90.33\% \\
 \bottomrule
 \end{tabular}

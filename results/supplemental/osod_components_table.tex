@@ -1,0 +1,12 @@
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{2.8cm}p{4.9cm}p{5.9cm}}
+\toprule
+模块 & 代码或配置位置 & 作用 \\
+\midrule
+闭集检测基线 & \texttt{scripts/train/train.py}，YOLO11n 权重 & 在 15 个已知类上训练常规 YOLO 检测器，作为开集检测对比基线。\\
+特征投影分支 & \texttt{Detect} 检测头，\texttt{proto\_dim=128} & 将检测位置对应的特征映射到原型空间，为类别原型距离计算提供特征表示。\\
+可学习类别原型 & \texttt{Detect.prototypes} & 为每个已知类维护一个原型向量，用样本特征与原型距离描述“是否像该类”。\\
+双线性阈值 & \texttt{osod\_inference.py}，$\alpha=0.37$，$\beta=0.10$，$\delta=16.5$ & 同时利用分类置信度和原型距离，将候选框划分为已知目标、未知目标和背景。\\
+原型正则化 & \texttt{utils/loss.py} 中的原型损失 & 通过吸引项、排斥项和原型分类损失，使同类特征靠近本类原型，不同类特征彼此分离。\\
+\bottomrule
+\end{tabular}

@@ -11,8 +11,7 @@
 | 3 | UCI Iris 数据集 | `datasets/03_uci_iris/` | 已下载并划分 |
 | 4 | MNIST 手写数字数据集 | `datasets/04_mnist/` | 已下载原始 IDX gzip 文件 |
 | 5 | CIFAR-10 / CIFAR-100 | `datasets/05_cifar/` | 已下载并解压 |
-| 6 | ImageNet | `datasets/06_imagenet/` | 需按官网账号和许可手动下载 |
-| 7 | 飞机分类数据集 | `experiment/plane_dataset_4_1/` | 原始数据已提供，清单见 `datasets/07_aircraft/manifest.csv` |
+| 6 | 飞机分类数据集 | `experiment/plane_dataset_4_1/` | 原始数据已提供，清单见 `datasets/07_aircraft/manifest.csv` |
 
 ## Preparation
 

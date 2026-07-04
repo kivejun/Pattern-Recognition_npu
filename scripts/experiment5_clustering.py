@@ -231,14 +231,102 @@ def write_summary_table(path: Path, rows: List[Dict[str, object]]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def write_dataset_table(path: Path, data: Dict[str, Tuple[np.ndarray, np.ndarray]]) -> None:
+    lines = [
+        "\\begin{tabular}{lrrrrr}",
+        "\\toprule",
+        "数据集 & 样本数 & 女生数 & 男生数 & 平均身高 & 平均体重 \\\\",
+        "\\midrule",
+    ]
+    name_map = {"train": "训练集", "test2": "test2", "combined": "训练集+test2"}
+    for key in ["train", "test2", "combined"]:
+        x, y = data[key]
+        lines.append(
+            f"{name_map[key]} & {len(x)} & {int(np.sum(y == 'F'))} & {int(np.sum(y == 'M'))} & "
+            f"{x[:, 0].mean():.2f} & {x[:, 1].mean():.2f} \\\\"
+        )
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_k_metrics_table(path: Path, rows: List[Dict[str, object]], dataset_name: str) -> None:
+    subset = [
+        row for row in rows
+        if row["dataset"] == dataset_name and row["method"] == "C-means"
+    ]
+    subset = sorted(subset, key=lambda row: int(row["n_clusters"]))
+    lines = [
+        "\\begin{tabular}{crrrr}",
+        "\\toprule",
+        "类别数 & SSE & 轮廓系数 & ARI & 迭代次数 \\\\",
+        "\\midrule",
+    ]
+    for row in subset:
+        lines.append(
+            f"{int(row['n_clusters'])} & {float(row['inertia']):.4f} & "
+            f"{float(row['silhouette']):.4f} & {float(row['ari']):.4f} & "
+            f"{int(row['iterations'])} \\\\"
+        )
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_init_table(path: Path, rows: List[Dict[str, object]]) -> None:
+    subset = [row for row in rows if row["method"] == "C-means different init"]
+    subset = sorted(subset, key=lambda row: int(row["seed"]))
+    lines = [
+        "\\begin{tabular}{crrrr}",
+        "\\toprule",
+        "随机种子 & SSE & 轮廓系数 & ARI & 性别匹配率 \\\\",
+        "\\midrule",
+    ]
+    for row in subset:
+        lines.append(
+            f"{int(row['seed'])} & {float(row['inertia']):.4f} & "
+            f"{float(row['silhouette']):.4f} & {float(row['ari']):.4f} & "
+            f"{format_percent(row['gender_accuracy_if_2'])} \\\\"
+        )
+    lines += ["\\bottomrule", "\\end{tabular}", ""]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_cluster_gender_table(path: Path, y_true: np.ndarray, cluster_labels: np.ndarray) -> None:
+    table = cluster_to_gender_table(y_true, cluster_labels)
+    lines = [
+        "\\begin{tabular}{lrr}",
+        "\\toprule",
+        "真实类别 & 判为女生簇 & 判为男生簇 \\\\",
+        "\\midrule",
+        f"女生 & {int(table[0, 0])} & {int(table[0, 1])} \\\\",
+        f"男生 & {int(table[1, 0])} & {int(table[1, 1])} \\\\",
+        "\\bottomrule",
+        "\\end{tabular}",
+        "",
+    ]
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def plot_cmeans_2d(x: np.ndarray, y: np.ndarray, labels: np.ndarray, centers_scaled: np.ndarray, scaler: StandardScaler, path: Path, title: str) -> None:
     centers = scaler.inverse_transform(centers_scaled)
     plt.figure(figsize=(7, 5))
-    plt.scatter(x[:, 0], x[:, 1], c=labels, cmap="Set2", s=34, alpha=0.82, edgecolor="white", linewidth=0.3)
+    markers = {"F": "o", "M": "^"}
+    for gender, marker in markers.items():
+        mask = y == gender
+        plt.scatter(
+            x[mask, 0],
+            x[mask, 1],
+            c=labels[mask],
+            cmap="Set2",
+            vmin=0,
+            vmax=max(1, int(labels.max())),
+            marker=marker,
+            s=38,
+            alpha=0.82,
+            edgecolor="white",
+            linewidth=0.3,
+            label=f"true {gender}",
+        )
     plt.scatter(centers[:, 0], centers[:, 1], c="black", marker="x", s=130, linewidths=2.2, label="centers")
-    for label, marker in [("F", "o"), ("M", "^")]:
-        mask = y == label
-        plt.scatter([], [], marker=marker, color="gray", label=f"true {label}")
     plt.xlabel("Height")
     plt.ylabel("Weight")
     plt.title(title)
@@ -251,9 +339,23 @@ def plot_cmeans_2d(x: np.ndarray, y: np.ndarray, labels: np.ndarray, centers_sca
 
 def plot_hierarchical_2d(x: np.ndarray, y: np.ndarray, labels: np.ndarray, path: Path, title: str) -> None:
     plt.figure(figsize=(7, 5))
-    plt.scatter(x[:, 0], x[:, 1], c=labels, cmap="Set2", s=34, alpha=0.82, edgecolor="white", linewidth=0.3)
-    for label, marker in [("F", "o"), ("M", "^")]:
-        plt.scatter([], [], marker=marker, color="gray", label=f"true {label}")
+    markers = {"F": "o", "M": "^"}
+    for gender, marker in markers.items():
+        mask = y == gender
+        plt.scatter(
+            x[mask, 0],
+            x[mask, 1],
+            c=labels[mask],
+            cmap="Set2",
+            vmin=0,
+            vmax=max(1, int(labels.max())),
+            marker=marker,
+            s=38,
+            alpha=0.82,
+            edgecolor="white",
+            linewidth=0.3,
+            label=f"true {gender}",
+        )
     plt.xlabel("Height")
     plt.ylabel("Weight")
     plt.title(title)
@@ -352,6 +454,14 @@ def main() -> None:
     plot_hierarchical_2d(combined_x, combined_y, combined_hier_labels, FIG_DIR / "hierarchical_combined_2clusters.pdf", "Ward Hierarchical Clustering on Training + Test2")
 
     write_csv(OUT_DIR / "metrics.csv", all_rows)
+    write_dataset_table(OUT_DIR / "dataset_table.tex", data)
+    write_k_metrics_table(OUT_DIR / "k_metrics_train_table.tex", all_rows, "train")
+    write_k_metrics_table(OUT_DIR / "k_metrics_combined_table.tex", all_rows, "combined")
+    write_init_table(OUT_DIR / "init_table.tex", all_rows)
+    write_cluster_gender_table(OUT_DIR / "cmeans_train_gender_table.tex", train_y, labels)
+    write_cluster_gender_table(OUT_DIR / "ward_train_gender_table.tex", train_y, train_hier_labels)
+    write_cluster_gender_table(OUT_DIR / "cmeans_combined_gender_table.tex", combined_y, combined_labels)
+    write_cluster_gender_table(OUT_DIR / "ward_combined_gender_table.tex", combined_y, combined_hier_labels)
     write_summary_table(OUT_DIR / "summary_table.tex", all_rows)
     best_seed_rows = [row for row in all_rows if row["method"] == "C-means different init"]
     with (OUT_DIR / "cluster_notes.txt").open("w", encoding="utf-8") as f:

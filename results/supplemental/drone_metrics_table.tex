@@ -1,0 +1,12 @@
+\begin{tabular}{p{3.0cm}p{5.0cm}p{4.0cm}}
+\toprule
+记录量 & 含义 & 分析用途 \\
+\midrule
+\texttt{episode\_reward} & 一条完整轨迹得到的分类器引导奖励。 & 衡量策略总体表现。\\
+\texttt{prob\_target} & CNN 将轨迹图像判为目标数字的概率。 & 判断轨迹是否像目标数字。\\
+\texttt{prob\_ood} & CNN 将轨迹判为 OOD/乱码的概率。 & 衡量轨迹是否可识别。\\
+\texttt{margin} & 目标数字概率与最强非目标类概率之差。 & 衡量识别置信间隔。\\
+\texttt{success\_rate} & 满足目标概率和 OOD 约束的轨迹比例。 & 比较不同算法和目标数字。\\
+轨迹图与分类器输入图 & 原始飞行轨迹和 $28\times28$ 渲染图。 & 检查数值指标是否符合视觉效果。\\
+\bottomrule
+\end{tabular}

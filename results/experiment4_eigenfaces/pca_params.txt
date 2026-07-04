@@ -1,0 +1,11 @@
+dataset: Olivetti Faces
+num_persons: 40
+images_per_person: 10
+train_per_person: 6
+train_samples: 240
+test_samples: 160
+image_shape: 64x64
+n_components: 120
+explained_variance_ratio_sum: 0.968985
+main_model: Eigenfaces+SVM
+test_accuracy: 0.962500

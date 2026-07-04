@@ -1,0 +1,13 @@
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.25cm}>{\raggedright\arraybackslash}p{3.35cm}>{\centering\arraybackslash}p{1.75cm}>{\centering\arraybackslash}p{1.85cm}>{\centering\arraybackslash}p{1.75cm}>{\centering\arraybackslash}p{1.55cm}}
+\toprule
+数据集 & 特征与非参数设置 & Gaussian 错误率 & 非参数错误率 & LDA 错误率 & 留一样本 \\
+\midrule
+模拟二类高斯 & 标准化原始特征；Parzen h=0.8 & 2.50\% & 3.75\% & 3.75\% & 235 \\
+模拟三类高斯 & 标准化原始特征；Parzen h=0.8 & 10.00\% & 10.83\% & 10.00\% & 240 \\
+UCI Iris & 标准化原始特征；Parzen h=0.8 & 0.00\% & 3.33\% & 0.00\% & 86 \\
+MNIST & PCA 64维，累计方差67.07\%；kNN k=5 & 37.80\% & 10.45\% & 19.55\% & 150 \\
+CIFAR-10 & PCA 64维，累计方差86.49\%；kNN k=7 & 66.28\% & 70.44\% & 63.67\% & 120 \\
+CIFAR-100 & PCA 64维，累计方差87.62\%；kNN k=5 & 85.13\% & 89.00\% & 85.47\% & 300 \\
+\bottomrule
+\end{tabular}

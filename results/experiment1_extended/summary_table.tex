@@ -1,0 +1,13 @@
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{4.2cm}>{\centering\arraybackslash}p{1.8cm}>{\centering\arraybackslash}p{1.8cm}>{\centering\arraybackslash}p{1.8cm}>{\centering\arraybackslash}p{1.8cm}}
+\toprule
+数据集 & 实验设置 & 参数最小错误率 & 参数最小风险 & 非参数最小错误率 & 非参数最小风险 \\
+\midrule
+模拟二类高斯 & 原始二维特征；高斯 full；Parzen $h=0.8$ & 97.50\% & 98.75\% & 96.25\% & 98.75\% \\
+模拟三类高斯 & 原始二维特征；高斯 full；Parzen $h=0.8$ & 90.00\% & 90.00\% & 89.17\% & 85.00\% \\
+UCI Iris & 4 维花萼/花瓣特征；高斯 full；Parzen $h=0.8$ & 100.00\% & 100.00\% & 96.67\% & 96.67\% \\
+MNIST & PCA 64 维；高斯 diag；kNN $k=5$ & 62.65\% & 62.30\% & 89.75\% & 89.45\% \\
+CIFAR-10 & PCA 64 维；高斯 diag；kNN $k=7$ & 33.05\% & 33.20\% & 30.30\% & 28.85\% \\
+CIFAR-100 & PCA 64 维；高斯 diag；kNN $k=5$ & 16.50\% & 16.60\% & 10.65\% & 10.55\% \\
+\bottomrule
+\end{tabular}

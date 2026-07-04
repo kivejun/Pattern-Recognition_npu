@@ -1,0 +1,10 @@
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{2.6cm}ccc p{4.9cm}}
+\toprule
+指标 & Baseline & DT-ProtoYOLO & 变化 & 结果说明 \\
+\midrule
+Known Recall & 84.2\% & 80.1\% & $-4.1$ 个百分点 & 已知类召回略有下降，但保留了基线约 95.1\% 的相对召回能力。\\
+A-OSE & 69 & 51 & $-26.1\%$ & 未知目标被误识别为已知类的错误数明显减少，开集安全性提升。\\
+Unknown Discovery & 0 & 70 & 显著提升 & 闭集基线无法输出 unknown，DT-ProtoYOLO 能发现并标记未知目标。\\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,11 @@
+\begin{tabular}{p{3.0cm}p{5.0cm}p{4.0cm}}
+\toprule
+指标 & 含义 & 评价方向 \\
+\midrule
+Known Recall & 已知类真实目标被正确检出的比例。 & 越高越好 \\
+A-OSE & 未知类真实目标被错误识别为某个已知类的数量。 & 越低越好 \\
+Unknown Discovery & 未知类真实目标被检测并标记为 unknown 的比例。 & 越高越好 \\
+Known mAP & 已知类检测框定位和分类的平均精度。 & 越高越好 \\
+阈值敏感性 & 改变 $\alpha,\beta,\delta$ 后未知发现率和误检数量的变化。 & 观察稳定性 \\
+\bottomrule
+\end{tabular}
